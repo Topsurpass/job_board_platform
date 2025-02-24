@@ -1,0 +1,68 @@
+services:
+    redis:
+        image: redis:alpine
+        container_name: job_board_redis
+
+        ports:
+            - "6379:6379"
+        volumes:
+            - redis_data:/data
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 10s
+            retries: 10
+            timeout: 10s
+
+    db:
+        image: mysql:8.0
+        container_name: job_board_mysql
+        environment:
+            MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+            MYSQL_DATABASE: ${MYSQL_DATABASE}
+            MYSQL_USER: ${MYSQL_USER}
+            MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+        ports:
+            - "3306:3306"
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+            interval: 10s
+            retries: 5
+            timeout: 5s
+        volumes:
+            - mysql_data:/var/lib/mysql
+
+    web:
+        build: .
+        depends_on:
+            redis:
+                condition: service_healthy
+            db:
+                condition: service_healthy
+        volumes:
+            - .:/app
+        ports:
+            - "8000:8000"
+        environment:
+            - DJANGO_SETTINGS_MODULE=job_board_platform.settings
+            - DATABASE_URL=mysql://developer:password@db:3306/job_board
+        command: >
+            sh -c "python manage.py migrate &&
+            python manage.py runserver 0.0.0.0:8000
+            "
+
+    worker:
+        build: .
+        depends_on:
+            redis:
+                condition: service_healthy
+            web:
+                condition: service_started
+        volumes:
+            - .:/app
+        environment:
+            - DJANGO_SETTINGS_MODULE=job_board_platform.settings
+        command: celery -A job_board_platform worker --loglevel=info
+
+volumes:
+    redis_data:
+    mysql_data:
