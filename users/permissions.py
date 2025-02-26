@@ -41,3 +41,14 @@ class IsOwnerBasedOnRole(BasePermission):
             return hasattr(obj, "user") and obj.user == request.user
 
         return False
+
+
+class IsOnlyAdmin(BasePermission):
+    """Allows access only to superadmins or users with the 'admin' role."""
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and (
+            request.user.is_superuser or getattr(request.user, "role", None) == "admin"
+        )
+    
+    def has_object_permission(self, request, view, obj):
+        return request.user.is_superuser or getattr(request.user, "role", None) == "admin"
