@@ -87,6 +87,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'users.middlewares.ExceptionMiddleware',
+    'users.middlewares.RequestLoggingMiddleware',
 ]
 
 ROOT_URLCONF = 'job_board_platform.urls'
