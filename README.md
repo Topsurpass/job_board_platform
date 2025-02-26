@@ -3,6 +3,9 @@
 ## Introduction
 This project provides a **robust and scalable backend** for job board platforms, enabling seamless job posting, management, and application processes. It also caters for **complex role management** and **efficient data retrieval** for a real world application, integrating **advanced database optimizations** and **comprehensive API documentation** to ensure efficient performance and easy integration.
 
+## Entity Relational Diagram
+![Entity relational diagram](ERD.png)
+
 ## Project Goals
 
 ### **1. API Development**
