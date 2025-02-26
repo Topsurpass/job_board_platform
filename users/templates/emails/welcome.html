@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome to EaseWork - No. 1 Job Board Platform in Nigeria</title>
+    <style>
+      /* Modern email-friendly CSS */
+      body {
+        margin: 0;
+        padding: 0;
+        min-width: 100%;
+        font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      }
+      .container {
+        max-width: 640px;
+        margin: 0 auto;
+        background: #ffffff;
+      }
+      .header {
+        background: linear-gradient(135deg, #6366f1 0%, #2563eb 100%);
+        padding: 40px 0;
+        text-align: center;
+      }
+      .logo {
+        max-width: 220px;
+        height: auto;
+      }
+      .content {
+        padding: 40px 30px;
+        color: #374151;
+        line-height: 1.6;
+      }
+      .cta-button {
+        display: inline-block;
+        padding: 16px 32px;
+        background: #2563eb;
+        color: #ffffff !important;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        margin: 25px 0;
+      }
+      .cta-button:hover {
+        background: #1d4ed8;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      }
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 25px;
+        margin: 30px 10px;
+      }
+      .feature-card {
+        padding: 20px;
+        background: #f8fafc;
+        border-radius: 8px;
+        border-left: 4px solid #2563eb;
+      }
+      .footer {
+        background: #f8fafc;
+        padding: 30px 20px;
+        text-align: center;
+        color: #64748b;
+      }
+      .social-links {
+        margin-top: 20px;
+      }
+      .social-links a {
+        margin: 0 12px;
+        text-decoration: none;
+      }
+      .greeting-section {
+        text-align: center;
+        padding-bottom: 30px;
+        border-bottom: 1px solid #e2e8f0;
+        margin-bottom: 30px;
+      }
+      .highlight-text {
+        color: #2563eb;
+        font-weight: 600;
+      }
+      @media screen and (max-width: 600px) {
+        .feature-grid {
+          grid-template-columns: 1fr;
+        }
+        .container {
+          max-width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header Section -->
+      <div class="header">
+        <h2 class="logo">EaseWork</h2>
+      </div>
+
+      <!-- Main Content -->
+      <div class="content">
+        <div class="greeting-section">
+          <h1 style="color: #1e293b; font-size: 28px; margin: 0 0 15px 0">
+            Welcome {{ first_name }}! Hunt global high paying jobs with ease 🚀
+          </h1>
+          <p style="color: #64748b; max-width: 500px; margin: 0 auto">
+            We're excited to have you join us as we help you with your job
+            hunting..
+          </p>
+        </div>
+
+        <!-- Feature Grid -->
+        <div class="feature-grid">
+          <div class="feature-card">
+            <h3 style="margin: 0 0 10px 0; color: #1e293b">
+              🎯 Personalized Profile
+            </h3>
+            <p style="margin: 0; color: #64748b">
+              Complete your profile to make potential employer check through
+              your profile
+            </p>
+          </div>
+          <div class="feature-card">
+            <h3 style="margin: 0 0 10px 0; color: #1e293b">
+              💼 Job applications
+            </h3>
+            <p style="margin: 0; color: #64748b">
+              Access thousands of job opportunities
+            </p>
+          </div>
+          <div class="feature-card">
+            <h3 style="margin: 0 0 10px 0; color: #1e293b">
+              📈 Build relationship
+            </h3>
+            <p style="margin: 0; color: #64748b">
+              Build relationships with your client after your first deliverable
+            </p>
+          </div>
+          <div class="feature-card">
+            <h3 style="margin: 0 0 10px 0; color: #1e293b">🤝 Freebies</h3>
+            <p style="margin: 0; color: #64748b">Apply for jobs at no cost.</p>
+          </div>
+        </div>
+
+        <!-- CTA Section -->
+        <div style="text-align: center; margin: 40px 0">
+          <a href="http://localhost:3000/" class="cta-button"
+            >Launch Your Dashboard →</a
+          >
+          <p style="color: #64748b; font-size: 0.9em; margin-top: 15px">
+            Pro Tip: Complete your profile to unlock all features
+          </p>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <div style="max-width: 400px; margin: 0 auto">
+          <p style="margin: 8px 0; font-size: 0.9em">
+            © {{ current_year }} {{ company_name }}<br />
+            Building Tomorrow's Tech Leaders
+          </p>
+          <div class="social-links">
+            <a href="#" style="color: #2563eb">Twitter</a>
+            <span style="color: #cbd5e1">|</span>
+            <a href="#" style="color: #2563eb">LinkedIn</a>
+            <span style="color: #cbd5e1">|</span>
+            <a href="#" style="color: #2563eb">Blog</a>
+          </div>
+          <p style="margin: 15px 0 0 0; font-size: 0.8em; color: #94a3b8">
+            This email was sent to {{ recipient_email }}<br />
+            <a href="#" style="color: #64748b; text-decoration: none"
+              >Unsubscribe</a
+            >
+            |
+            <a href="#" style="color: #64748b; text-decoration: none"
+              >Privacy Policy</a
+            >
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
