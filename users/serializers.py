@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 
 class UserSerializer(serializers.ModelSerializer):
-    # user_count = serializers.SerializerMethodField()
+    """Serializer for User model"""
     class Meta:
         model = User
         fields = '__all__'
@@ -29,7 +29,7 @@ class UserSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        """Handle user creation with different roles"""
+        """Handle user creation"""
         password = validated_data.pop('password')
         groups = validated_data.pop('groups', [])
         user_permissions = validated_data.pop('user_permissions', [])
@@ -40,10 +40,6 @@ class UserSerializer(serializers.ModelSerializer):
         user.user_permissions.set(user_permissions)
         return user
     
-    # def count_all_users(self):
-    #     """Count all users ever created"""
-    #     return User.objects.count()
-    
 class UserProfileSerializer(serializers.ModelSerializer):
     """Serializer for the UserProfile model"""
     user = UserSerializer(read_only=True)
@@ -52,6 +48,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class EmployerProfileSerializer(serializers.ModelSerializer):
+    """"Serializer for EmployerProfile model"""
     user = UserSerializer(read_only=True)
     class Meta:
         model = EmployerProfile
