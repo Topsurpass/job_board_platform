@@ -41,18 +41,18 @@ class RequestLoggingMiddleware(MiddlewareMixin):
         start_time = time.time()
         
         # Attempt JWT authentication first
-        username = "Anonymous"
+        email = "Anonymous"
         role = "visitor"
         
         try:
             auth_result = self.jwt_authenticator.authenticate(request)
             if auth_result:
-                username = auth_result[0].username  # Extract username
+                email = auth_result[0].email  # Extract email
                 role = getattr(auth_result[0], "role", "unknown")
             else:
                 # If JWT auth fails, check session authentication (useful for Django Admin)
                 if request.user.is_authenticated:
-                    username = request.user.username
+                    email = request.user.email
                     role = getattr(request.user, "role", "admin")
 
         except Exception as e:
@@ -70,7 +70,7 @@ class RequestLoggingMiddleware(MiddlewareMixin):
 
         request_data = {
             "timestamp": datetime.now().isoformat(),
-            "username": username,
+            "email": email,
             "role": role,
             "method": request.method,
             "path": request.path,

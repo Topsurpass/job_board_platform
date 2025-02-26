@@ -9,15 +9,12 @@ class IsOwnerBasedOnRole(BasePermission):
     """
 
     def has_permission(self, request, view):
-        # Ensure the user is authenticated
         if not request.user or not request.user.is_authenticated:
             return False
         
-        # Admins have full access
         if request.user.is_superuser:
             return True
 
-        # Employers and users can always read (GET, HEAD, OPTIONS)
         if request.method in SAFE_METHODS:
             return True  
 

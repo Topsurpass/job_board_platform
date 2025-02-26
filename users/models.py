@@ -1,4 +1,4 @@
-from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 import uuid
 
@@ -9,7 +9,7 @@ class CustomUserManager(BaseUserManager):
         """Create and return a regular user with an email and password"""
         if not email:
             raise ValueError("The Email field must be set")
-        
+
         email = self.normalize_email(email)
         extra_fields.setdefault("is_active", True)
         user = self.model(email=email, **extra_fields)
@@ -25,11 +25,14 @@ class CustomUserManager(BaseUserManager):
 
         return self.create_user(email, password, **extra_fields)
 
-class User(AbstractUser):
-    """Custom User model extending Django's AbstractUser"""
+
+class User(AbstractBaseUser, PermissionsMixin):
+    """Custom User model extending Django's AbstractBaseUser (no username field)"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, unique=True)
-    email = models.EmailField(unique=True, db_index=True) 
+    email = models.EmailField(unique=True, db_index=True)
     phone = models.CharField(max_length=15, blank=True, null=True)
+    first_name = models.CharField(max_length=50, blank=True, null=True)
+    last_name = models.CharField(max_length=50, blank=True, null=True)
 
     ROLE_CHOICES = [
         ('user', 'USER'),
@@ -44,29 +47,20 @@ class User(AbstractUser):
     )
     company_name = models.CharField(max_length=255, blank=True, null=True)
     industry = models.CharField(max_length=100, blank=True, null=True)
-    
-    password = models.CharField(max_length=128)
+
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
 
     objects = CustomUserManager()
-    
-    groups = models.ManyToManyField(
-        "auth.Group",
-        related_name="custom_user_groups",
-        blank=True,
-    )
-    user_permissions = models.ManyToManyField(
-        "auth.Permission",
-        related_name="custom_user_permissions",
-        blank=True,
-    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name} ({self.email})"
+        return f"{self.email}"
 
 class UserProfile(models.Model):
     """User profile for job seekers"""

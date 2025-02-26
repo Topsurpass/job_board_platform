@@ -3,7 +3,6 @@ from .models import UserProfile, User, EmployerProfile
 from rest_framework.exceptions import AuthenticationFailed, ValidationError
 from rest_framework import serializers
 
-
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for User model"""
     class Meta:
@@ -13,8 +12,6 @@ class UserSerializer(serializers.ModelSerializer):
             'password': {'write_only': True},
             'email': {'required': True},
             'role': {'required': True},
-            'first_name': {'required': True},
-            'last_name': {'required': True},
         }
 
     def validate(self, attrs):
@@ -26,6 +23,13 @@ class UserSerializer(serializers.ModelSerializer):
                 raise ValidationError({"company_name": "This field is required for employers."})
             if not attrs.get('industry'):
                 raise ValidationError({"industry": "This field is required for users."})
+        if role == 'user':
+            if not attrs.get('first_name'):
+                raise ValidationError({"first_name": "This field is required for user."})
+            if not attrs.get('last_name'):
+                raise ValidationError({"last_name": "This field is required for users."})
+            attrs.pop('company_name', None)
+            attrs.pop('industry', None)
         return attrs
 
     def create(self, validated_data):
@@ -48,7 +52,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class EmployerProfileSerializer(serializers.ModelSerializer):
-    """"Serializer for EmployerProfile model"""
+    """"Serializer for Employer"""
     user = UserSerializer(read_only=True)
     class Meta:
         model = EmployerProfile
