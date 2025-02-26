@@ -28,3 +28,9 @@ compose-up:
 compose-down:
 	docker compose down
 
+seed-job:
+	python3 manage.py seed-job
+
+seed-industry:
+	python3 manage.py seed-industry
+
