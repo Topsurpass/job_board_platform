@@ -21,7 +21,7 @@ This project provides a **robust and scalable backend** for job board platforms,
 ### **3. Database Efficiency**
 
 - Optimize job search queries using **indexing and query optimization techniques**.
-- Implement **advanced filtering** for jobs based on location, category, and type.
+- Implement **advanced filtering** for jobs based on location, industry, and type.
 
 ## Technologies Used
 
@@ -48,7 +48,7 @@ This project provides a **robust and scalable backend** for job board platforms,
 ### **3. Optimized Job Search**
 
 - **Indexing & optimized queries** for fast filtering.
-- **Advanced filtering**: Location-based, category-based, and keyword-based search.
+- **Advanced filtering**: Location-based, industry-based, and keyword-based search.
 
 ### **4. API Documentation**
 
