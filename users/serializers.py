@@ -5,6 +5,7 @@ from rest_framework import serializers
 
 
 class UserSerializer(serializers.ModelSerializer):
+    # user_count = serializers.SerializerMethodField()
     class Meta:
         model = User
         fields = '__all__'
@@ -38,6 +39,10 @@ class UserSerializer(serializers.ModelSerializer):
         user.groups.set(groups)
         user.user_permissions.set(user_permissions)
         return user
+    
+    # def count_all_users(self):
+    #     """Count all users ever created"""
+    #     return User.objects.count()
     
 class UserProfileSerializer(serializers.ModelSerializer):
     """Serializer for the UserProfile model"""
