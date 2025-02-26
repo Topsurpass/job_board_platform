@@ -1,10 +1,10 @@
 from rest_framework import routers
-from .views import CategoryViewSet, JobViewSet, ApplicationViewSet
+from .views import IndustryViewSet, JobViewSet, ApplicationViewSet
 from django.urls import path, include
 
 
 router = routers.DefaultRouter()
-router.register(r'category', CategoryViewSet, basename='category')
+router.register(r'industry', IndustryViewSet, basename='industry')
 router.register(r'job', JobViewSet, basename='job')
 router.register(r'application', ApplicationViewSet, basename='application')
 

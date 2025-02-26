@@ -2,7 +2,7 @@ import random
 import uuid
 from django.core.management.base import BaseCommand
 from users.models import User
-from jobs.models import Job, Category
+from jobs.models import Job, Industry
 
 
 class Command(BaseCommand):
@@ -21,11 +21,11 @@ class Command(BaseCommand):
         locations = ["New York", "San Francisco", "London", "Berlin", "Toronto", "Paris", "Dubai", "Singapore", "Lagos", "Sydney"]
         job_types = ["part-time", "full-time", "contract", "internship"]
 
-        categories = list(Category.objects.all())
+        industries = list(Industry.objects.all())
         users = list(User.objects.all())
 
-        if not categories:
-            self.stdout.write(self.style.ERROR("No categories found! Please seed categories first."))
+        if not industries:
+            self.stdout.write(self.style.ERROR("No industries found! Please seed industries first."))
             return
 
         if not users:
@@ -41,8 +41,9 @@ class Command(BaseCommand):
                 company=random.choice(companies),
                 location=random.choice(locations),
                 type=random.choice(job_types),
+                wage=random.randint(30000, 200000),
                 description="This is a sample job description.",
-                category=random.choice(categories),
+                industry=random.choice(industries),
                 posted_by=random.choice(users),
                 is_active=True,
             )

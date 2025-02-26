@@ -2,7 +2,7 @@ from django.db import models
 import uuid
 from users.models import User
 
-class Category(models.Model):
+class Industry(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, unique=True, editable=False)
     name = models.CharField(max_length=255, unique=True, db_index=True)
     description = models.TextField(null=True, blank=True)
@@ -41,7 +41,7 @@ class Job(models.Model):
     
     experience_level = models.CharField(max_length=10, choices=EXPERIENCE_CHOICES, null=True, blank=True)
     description = models.TextField()
-    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name="jobs")
+    industry = models.ForeignKey(Industry, on_delete=models.SET_NULL, null=True, related_name="jobs")
     posted_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="jobs")
     posted_at = models.DateTimeField(auto_now_add=True, db_index=True)
     is_active = models.BooleanField(default=True, db_index=True)
