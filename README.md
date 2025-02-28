@@ -92,3 +92,47 @@ This project provides a **robust and scalable backend** for job board platforms,
 ---
 
 This backend system is designed for **scalability, security, and efficiency**, ensuring seamless integration with frontend applications. 🚀
+
+## Expected Role based behaviour for models
+
+## Industry Model
+
+| User Type          | Authenticated? | GET (View) | POST (Create) | PUT/PATCH (Update) | DELETE |
+|-------------------|--------------|------------|--------------|--------------------|--------|
+| **Admin**         | ✅ Yes        | ✅ Allowed | ✅ Allowed   | ✅ Allowed         | ✅ Allowed |
+| **Admin**         | ❌ No         | ✅ Allowed | ❌ Denied    | ❌ Denied          | ❌ Denied |
+| **Employer**  | ✅ Yes        | ✅ Allowed | ❌ Denied    | ❌ Denied          | ❌ Denied |
+| **Employer**  | ❌ No         | ✅ Allowed | ❌ Denied    | ❌ Denied          | ❌ Denied |
+| **Regular User**  | ✅ Yes        | ✅ Allowed | ❌ Denied    | ❌ Denied          | ❌ Denied |
+| **Regular User**  | ❌ No         | ✅ Allowed | ❌ Denied    | ❌ Denied          | ❌ Denied |
+
+## Category Model
+
+| User Type          | Authenticated? | GET (View) | POST (Create) | PUT/PATCH (Update) | DELETE |
+|-------------------|--------------|------------|--------------|--------------------|--------|
+| **Admin**         | ✅ Yes        | ✅ Allowed | ✅ Allowed   | ✅ Allowed         | ✅ Allowed |
+| **Admin**         | ❌ No         | ✅ Allowed | ❌ Denied    | ❌ Denied          | ❌ Denied |
+| **Employer**  | ✅ Yes        | ✅ Allowed | ❌ Denied    | ❌ Denied          | ❌ Denied |
+| **Employer**  | ❌ No         | ✅ Allowed | ❌ Denied    | ❌ Denied          | ❌ Denied |
+| **Regular User**  | ✅ Yes        | ✅ Allowed | ❌ Denied    | ❌ Denied          | ❌ Denied |
+| **Regular User**  | ❌ No         | ✅ Allowed | ❌ Denied    | ❌ Denied          | ❌ Denied |
+
+
+## Job Model
+
+| User Type         | Authenticated? | GET (View) | POST (Create) | PUT/PATCH (Update) | DELETE |
+|------------------|--------------|------------|--------------|--------------------|--------|
+| **Admin**        | ✅ Yes        | ✅ Allowed | ✅ Allowed   | ✅ Allowed         | ✅ Allowed |
+| **Admin**        | ❌ No         | ✅ Allowed | ❌ Denied    | ❌ Denied          | ❌ Denied |
+| **Employer**     | ✅ Yes        | ✅ Allowed | ✅ Allowed   | ✅ Allowed (Own)   | ✅ Allowed (Own) |
+| **Employer**     | ❌ No         | ✅ Allowed | ❌ Denied    | ❌ Denied          | ❌ Denied |
+| **Regular User** | ✅ Yes        | ✅ Allowed | ❌ Denied    | ❌ Denied          | ❌ Denied |
+| **Regular User** | ❌ No         | ✅ Allowed | ❌ Denied    | ❌ Denied          | ❌ Denied |
+
+## Application Model
+| User Type         | Authenticated? | GET (View) | POST (Create) | PUT/PATCH (Update) | DELETE |
+|------------------|--------------|------------|--------------|--------------------|--------|
+| **Admin**        | ✅ Yes        | ✅ Allowed | ✅ Allowed   | ✅ Allowed         | ✅ Allowed |
+| **Employer**     | ✅ Yes        | ✅ Allowed (Own Jobs) | ❌ Denied  | ❌ Denied  | ❌ Denied  |
+| **Regular User** | ✅ Yes        | ✅ Allowed (Own Apps) | ✅ Allowed  | ❌ Denied  | ❌ Denied  |
+| **Unauthenticated** | ❌ No      | ❌ Denied  | ❌ Denied    | ❌ Denied  | ❌ Denied  |
