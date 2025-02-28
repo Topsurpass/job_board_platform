@@ -75,6 +75,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'users',
     'jobs',
+    'applications',
 ]
 
 MIDDLEWARE = [
@@ -132,17 +133,17 @@ WSGI_APPLICATION = 'job_board_platform.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-USE_MYSQL = env.bool('USE_MYSQL', default=False)
+USE_POSTGRES = env.bool('USE_POSTGRES', default=True)  # Add this line
 
-if USE_MYSQL:
+if USE_POSTGRES:
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': env('MYSQL_DATABASE'),
-            'USER': env('MYSQL_USER'),
-            'PASSWORD': env('MYSQL_PASSWORD'),
-            'HOST': env('MYSQL_HOST', default='localhost'),
-            'PORT': env('MYSQL_PORT', default=3306),
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': env('POSTGRES_DB'),
+            'USER': env('POSTGRES_USER'),
+            'PASSWORD': env('POSTGRES_PASSWORD'),
+            'HOST': env('POSTGRES_HOST', default='localhost'),
+            'PORT': env('POSTGRES_PORT', default=5432),
         }
     }
 else:
@@ -184,14 +185,14 @@ SIMPLE_JWT = {
 }
 
 # Celery settings (local machine)
-CELERY_BROKER_URL = "redis://localhost:6379/0"
-CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
+# CELERY_BROKER_URL = "redis://localhost:6379/0"
+# CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
 #CELERY_BROKER_URL = env('CELERY_BROKER_URL', default="redis://localhost:6379")
 #CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default="redis://localhost:6379")
 
 # Celery settings (docker)
-# CELERY_BROKER_URL = 'redis://redis:6379/0'
-# CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+CELERY_BROKER_URL = 'redis://redis:6379/0'
+CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
