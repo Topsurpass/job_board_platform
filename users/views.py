@@ -21,8 +21,14 @@ class UserCreateView(generics.CreateAPIView):
     def perform_create(self, serializer):
         user = serializer.save()
 
-        if user.role == 'user':
+        if user.role == 'admin':
+            user.is_staff = True
+            user.is_superuser = True
+            user.save(update_fields=["is_staff", "is_superuser"])
+
+        elif user.role == 'user':
             send_welcome_email.delay(user.email, user.first_name)
+
         elif user.role == 'employer':
             employer_profile = EmployerProfile.objects.filter(user=user).first()
             if employer_profile:

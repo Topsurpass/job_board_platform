@@ -45,7 +45,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         choices=ROLE_CHOICES,
         default='user'
     )
-    company_name = models.CharField(max_length=255, blank=True, null=True)
+    company_name = models.CharField(max_length=255, blank=True, null=True, unique=True)
     industry = models.CharField(max_length=100, blank=True, null=True)
 
     is_active = models.BooleanField(default=True)
