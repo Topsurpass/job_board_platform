@@ -1,6 +1,6 @@
 from rest_framework import permissions
 
-class ReadOnlyForAllUsersModifyByAdmin(permissions.BasePermission):
+class ReadOnlyModifyByAdminEmployer(permissions.BasePermission):
     """
     - Allow all users (authenticated or not) to view (GET).
     - Allow only admin and employer to modify (POST, PUT, PATCH, DELETE).
@@ -52,3 +52,20 @@ class ReadCreateOnlyAdminModify(permissions.BasePermission):
         if request.method in ["POST", "GET"]:
             return hasattr(obj, 'applicant') and obj.applicant == request.user
         return False
+
+class ReadOnlyAdminModify(permissions.BasePermission):
+    """
+        - View only access for all
+        - Only admin create and modify
+    """
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        
+        return request.user.is_superuser
+        
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        
+        return request.user.is_superuser

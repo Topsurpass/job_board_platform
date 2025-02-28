@@ -1,7 +1,8 @@
 from rest_framework import viewsets, filters, status
-from .models import Job, Industry, Application
-from .serializers import IndustrySerializer, JobSerializer, ApplicationSerializer
-from .permissions import ReadOnlyForAllUsersModifyByAdmin, ReadCreateOnlyAdminModify
+from .models import Job, Industry, Category
+from applications.models import Application
+from .serializers import IndustrySerializer, JobSerializer, CategorySerializer
+from .permissions import ReadOnlyModifyByAdminEmployer, ReadOnlyAdminModify
 from .pagination import CustomPagination
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -11,8 +12,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from collections import defaultdict
 from django.core.paginator import Paginator
-from django.db.models import F
-
+from django.db.models import F, Q
 
 
 logger = logging.getLogger(__name__)
@@ -21,10 +21,13 @@ class IndustryViewSet(viewsets.ModelViewSet):
     """API endpoint for industries with paginated jobs."""
     queryset = Industry.objects.all().order_by('-created_at')
     serializer_class = IndustrySerializer
-    permission_classes = [ReadOnlyForAllUsersModifyByAdmin]
+    permission_classes = [ReadOnlyAdminModify]
     pagination_class = CustomPagination
     filter_backends = [filters.SearchFilter]
     search_fields = ['name']
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
 
     @action(detail=True, methods=["get"], url_path="jobs")
     def get_industry_jobs(self, request, pk=None):
@@ -41,7 +44,51 @@ class IndustryViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.error(f"Error: {e}")
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    @action(detail=True, methods=["get"], url_path="categories")
+    def get_industry_categories(self, request, pk=None):
+        """Retrieve all categories under a specific industry."""
+        try:
+            industry = self.get_object()
+            categories = Category.objects.filter(industry=industry).order_by('-created_at')
+            paginator = CustomPagination()
+            paginated_category = paginator.paginate_queryset(categories, request)
+            serializer = CategorySerializer(paginated_category, many=True)
+            return paginator.get_paginated_response(serializer.data)
+        except Industry.DoesNotExist:
+            return Response({"error": "Industry not found."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error: {e}")
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+class CategoryViewSet(viewsets.ModelViewSet):
+    """API for creating and modifying categories"""
+    queryset = Category.objects.all().order_by('-created_at')
+    serializer_class = CategorySerializer
+    filter_backends = [filters.SearchFilter]
+    permission_classes = [ReadOnlyAdminModify]
+    search_fields = ['name']
+    pagination_class = CustomPagination
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+    @action(detail=True, methods=["get"], url_path="jobs")
+    def get_category_jobs(self, request, pk=None):
+        """Retrieve all jobs under a specific industry category."""
+        try:
+            category = self.get_object()
+            jobs = Job.objects.filter(category=category).order_by('-posted_at')
+            paginator = CustomPagination()
+            paginated_jobs = paginator.paginate_queryset(jobs, request)
+            serializer = JobSerializer(paginated_jobs, many=True)
+            return paginator.get_paginated_response(serializer.data)
+        except Category.DoesNotExist:
+            return Response({"error": "Category not found."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error: {e}")
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class JobViewSet(viewsets.ModelViewSet):
     """API endpoint for jobs with optimized categorized-jobs endpoint."""
@@ -53,124 +100,143 @@ class JobViewSet(viewsets.ModelViewSet):
     serializer_class = JobSerializer
     pagination_class = CustomPagination
     filter_backends = [filters.SearchFilter]
-    permission_classes = [ReadOnlyForAllUsersModifyByAdmin]
+    permission_classes = [ReadOnlyModifyByAdminEmployer]
     search_fields = ["title", "type", "location", "industry__name"]
 
-    @swagger_auto_schema(
-        operation_summary="Get Job Categories by Industry, location and type",
-        operation_description=(
-            "This endpoint retrieves all jobs categorized by their Industry, location and type, "
-            "with pagination for each category."
-        ),
-        manual_parameters=[
-            openapi.Parameter("page_size", openapi.IN_QUERY, description="Number of jobs per page (default: 10)", type=openapi.TYPE_INTEGER),
-            openapi.Parameter("industry_page", openapi.IN_QUERY, description="Page number for industry category", type=openapi.TYPE_INTEGER),
-            openapi.Parameter("location_page", openapi.IN_QUERY, description="Page number for 'location' category", type=openapi.TYPE_INTEGER),
-            openapi.Parameter("type_page", openapi.IN_QUERY, description="Page number for 'type' category", type=openapi.TYPE_INTEGER),
-        ],
-        responses={
-            200: openapi.Response(
-                description="Successfully retrieved categorized jobs",
-                examples={
-                    "application/json": {
-                        "industry": {
-                            "Publishing & Journalism": {
-                                "total_count": 2,
-                                "jobs": [
-                                    {"id": "28c3add8-2769-43a0-9d10-2468caaec68c", "title": "Business Analyst", "location": "Sydney", "type": "internship", "wage": 170143, "industry_name": "Publishing & Journalism"}
-                                ],
-                                "pagination": {
-                                    "next": "http://localhost:8000/api/job/categorized-jobs/?industry_page=2&page_size=1",
-                                    "previous": 'null'
-                                }
-                            },
-                        },
-                        "location": {
-                            "Sydney": {
-                                "total_count": 6,
-                                "jobs": [
-                                    {"id": "28c3add8-2769-43a0-9d10-2468caaec68c","title": "Business Analyst","industry__name": "Publishing & Journalism", "location": "Sydney", "type": "internship", "wage": 170143, "industry_name": "Publishing & Journalism" }
-                                ],
-                                "pagination": {
-                                    "next": "http://localhost:8000/api/job/categorized-jobs/?industry_page=1&page_size=1&location_page=2",
-                                    "previous": 'null'
-                                }
-                            },
-                        },
-                        "type": {
-                            "contract": {
-                                "total_count": 4,
-                                "jobs": [
-                                    {"id": "28c3add8-2769-43a0-9d10-2468caaec68c","title": "Business Analyst","industry__name": "Publishing & Journalism", "location": "Sydney", "type": "internship", "wage": 170143, "industry_name": "Publishing & Journalism" }
-                                ],
-                                "pagination": {
-                                    "next": "http://localhost:8000/api/job/categorized-jobs/?industry_page=1&page_size=1&location_page=2",
-                                    "previous": 'null'
-                                }
-                            },
-                        }
-                    }
-                },
-            ),
-            400: openapi.Response("Invalid request parameters"),
-            500: openapi.Response("Server error"),
-        },
-    )
-
-
-    @action(detail=False, methods=["get"], url_path="categorized-jobs")
-    def get_categorized_jobs(self, request):
-        """Optimized endpoint to get jobs categorized by industry, location, and type."""
-
-        jobs = (
-        Job.objects
-        .annotate(industry_name=F("industry__name"))
-        .values("id", "title", "industry_name", "location", "type", "wage")
-        .order_by("posted_at")
-    )
-        job_groups = {
-            "industry": defaultdict(list),
-            "location": defaultdict(list),
-            "type": defaultdict(list),
-        }
-        for job in jobs:
-            job_groups["industry"][job["industry_name"] or "Other"].append(job)
-            job_groups["location"][job["location"] or "Other"].append(job)
-            job_groups["type"][job["type"] or "Other"].append(job)
-
-        paginated_categories = {}
-        for category, groups in job_groups.items():
-            paginated_categories[category] = {
-                key: self._paginate_queryset(request, job_list, category)
-                for key, job_list in groups.items()
-            }
-
-        return Response(paginated_categories, status=status.HTTP_200_OK)
+    def perform_create(self, serializer):
+        """Make the authenticated user the one who posted the job"""
+        serializer.save(posted_by=self.request.user)
 
     def _paginate_queryset(self, request, job_list, category):
-        """Helper method to paginate a list of jobs."""
+        """Helper method to paginate job listings"""
         page_size = int(request.GET.get("page_size", 10))
-        page_number = int(request.GET.get(f"{category}_page", 1))
+        page_number = int(request.GET.get("page", 1))
         paginator = Paginator(job_list, page_size)
         page = paginator.get_page(page_number)
-        base_url = request.build_absolute_uri().split("?")[0]
-        query_params = request.GET.dict()
-
-        query_params[f"{category}_page"] = page.next_page_number() if page.has_next() else None
-        next_url = f"{base_url}?{'&'.join(f'{k}={v}' for k, v in query_params.items() if v is not None)}"
-        query_params[f"{category}_page"] = page.previous_page_number() if page.has_previous() else None
-        prev_url = f"{base_url}?{'&'.join(f'{k}={v}' for k, v in query_params.items() if v is not None)}"
 
         return {
             "total_count": paginator.count,
             "jobs": list(page),
             "pagination": {
-                "next": next_url if page.has_next() else None,
-                "previous": prev_url if page.has_previous() else None,
+                "next": page.next_page_number() if page.has_next() else None,
+                "previous": page.previous_page_number() if page.has_previous() else None,
             },
         }
+    
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                "category",
+                openapi.IN_QUERY,
+                description="Category to filter jobs by (industry, location, or type)",
+                type=openapi.TYPE_STRING,
+                enum=["industry", "location", "type"],
+                required=True,
+            ),
+            openapi.Parameter(
+                "filter",
+                openapi.IN_QUERY,
+                description="Specific category value to filter (e.g., Lagos, Full-Time, Technology)",
+                type=openapi.TYPE_STRING,
+                required=False,
+            ),
+            openapi.Parameter(
+                "search",
+                openapi.IN_QUERY,
+                description="Search for jobs by title, industry, location, or type",
+                type=openapi.TYPE_STRING,
+                required=False,
+            ),
+            openapi.Parameter(
+                "page",
+                openapi.IN_QUERY,
+                description="Page number for pagination",
+                type=openapi.TYPE_INTEGER,
+                required=False,
+            ),
+            openapi.Parameter(
+                "page_size",
+                openapi.IN_QUERY,
+                description="Number of jobs per page (default: 10)",
+                type=openapi.TYPE_INTEGER,
+                required=False,
+            ),
+        ],
+        responses={
+            200: openapi.Response(
+                "Jobs categorized and paginated successfully",
+                openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "category_name": openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                "total_count": openapi.Schema(type=openapi.TYPE_INTEGER),
+                                "jobs": openapi.Schema(
+                                    type=openapi.TYPE_ARRAY,
+                                    items=openapi.Schema(
+                                        type=openapi.TYPE_OBJECT,
+                                        properties={
+                                            "id": openapi.Schema(type=openapi.TYPE_INTEGER),
+                                            "title": openapi.Schema(type=openapi.TYPE_STRING),
+                                            "industry_name": openapi.Schema(type=openapi.TYPE_STRING),
+                                            "location": openapi.Schema(type=openapi.TYPE_STRING),
+                                            "type": openapi.Schema(type=openapi.TYPE_STRING),
+                                            "wage": openapi.Schema(type=openapi.TYPE_NUMBER),
+                                        },
+                                    ),
+                                ),
+                                "pagination": openapi.Schema(
+                                    type=openapi.TYPE_OBJECT,
+                                    properties={
+                                        "next": openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                                        "previous": openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                                    },
+                                ),
+                            },
+                        )
+                    },
+                ),
+            ),
+            400: "Invalid request (e.g., missing required parameters)",
+        },
+    )
 
+    @action(detail=False, methods=["get"], url_path="categorized-jobs")
+    def get_categorized_jobs(self, request):
+        """Get jobs categorized and filtered dynamically by location, type, or industry."""
+        category = request.GET.get("category")  # Can be "location", "type", or "industry"
+        category_filter = request.GET.get("filter")  # Specific value to filter by
+        search_query = request.GET.get("search", "").strip()
 
+        if category not in ["location", "type", "industry"]:
+            return Response({"error": "Invalid category. Use location, type, or industry."}, status=status.HTTP_400_BAD_REQUEST)
+
+        jobs = Job.objects.annotate(industry_name=F("industry__name"))
+
+        if search_query:
+            jobs = jobs.filter(
+                Q(title__icontains=search_query) |
+                Q(industry__name__icontains=search_query) |
+                Q(location__icontains=search_query) |
+                Q(type__icontains=search_query)
+            )
+
+        # Convert "industry" to match annotation name
+        category_field = "industry_name" if category == "industry" else category
+        jobs = jobs.values("id", "title", "industry_name", "location", "type", "wage").order_by("-posted_at")
+
+        job_groups = defaultdict(list)
+        for job in jobs:
+            job_groups[job[category_field] or "Other"].append(job)
+
+        if category_filter:
+            job_groups = {category_filter: job_groups.get(category_filter, [])}
+
+        paginated_data = {key: self._paginate_queryset(request, job_list, category) for key, job_list in job_groups.items()}
+        return Response(paginated_data, status=status.HTTP_200_OK)
+
+   
     @action(detail=True, methods=["get"], url_path="applicants")
     def get_applicants(self, request, pk=None):
         """Optimized applicants retrieval with caching."""
@@ -196,11 +262,4 @@ class JobViewSet(viewsets.ModelViewSet):
         }
         cache.set(cache_key, response_data, timeout=60 * 10)
         return paginator.get_paginated_response(response_data)
-class ApplicationViewSet(viewsets.ModelViewSet):
-    """API endpoint that allows user to submit application"""
-    queryset = Application.objects.all().order_by('-applied_at')
-    serializer_class = ApplicationSerializer
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['job__title', 'job__company', 'job__industry__name']
-    permission_classes = [ReadCreateOnlyAdminModify]
-    pagination_class = CustomPagination
+
