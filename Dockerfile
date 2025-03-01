@@ -32,5 +32,6 @@ EXPOSE 8000
 # Start Django with Gunicorn
 CMD python manage.py makemigrations && \
     python manage.py migrate && \
+    python manage.py collectstatic --noinput && \
     gunicorn job_board_platform.wsgi:application --bind 0.0.0.0:8000 & \
     celery -A job_board_platform worker --loglevel=info
