@@ -19,12 +19,6 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Create a non-root user
-RUN adduser --disabled-password --gecos "" developer
-
-# Switch to the new user
-USER developer
-
 # Copy the rest of the application code
 COPY . .
 
@@ -32,7 +26,9 @@ COPY . .
 ENV PYTHONUNBUFFERED=1
 ENV DJANGO_SETTINGS_MODULE=job_board_platform.settings
 
-# Run database migrations before starting the server
-CMD python manage.py makemigrations && \
-    python manage.py migrate && \
-    python manage.py runserver 0.0.0.0:8000
+# Expose port 8000
+EXPOSE 8000
+
+# Start Django with Gunicorn
+CMD python manage.py migrate && \
+    gunicorn job_board_platform.wsgi:application --bind 0.0.0.0:8000
