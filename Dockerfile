@@ -33,4 +33,4 @@ EXPOSE 8000
 CMD python manage.py makemigrations && \
     python manage.py migrate && \
     gunicorn job_board_platform.wsgi:application --bind 0.0.0.0:8000 & \
-    celery -A job_board_platform worker --loglevel=info
+    celery -A job_board_platform worker --loglevel=info --uid developer

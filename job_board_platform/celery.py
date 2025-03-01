@@ -9,6 +9,7 @@ app = Celery('job_board_platform')
 # Using a string here means the worker doesn't have to serialize
 # the configuration object to child processes.
 app.config_from_object('django.conf:settings', namespace='CELERY')
+broker_connection_retry_on_startup = True
 
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
