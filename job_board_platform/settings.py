@@ -134,8 +134,20 @@ WSGI_APPLICATION = 'job_board_platform.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 USE_POSTGRES = env.bool('USE_POSTGRES', default=True)  # Add this line
+USE_MYSQL = env.bool('USE_MYSQL', default=False)
 
-if USE_POSTGRES:
+if USE_MYSQL:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': env('MYSQL_DATABASE'),
+            'USER': env('MYSQL_USER'),
+            'PASSWORD': env('MYSQL_PASSWORD'),
+            'HOST': env('MYSQL_HOST', default='localhost'),
+            'PORT': env('MYSQL_PORT', default=3306),
+        }
+    }
+elif USE_POSTGRES:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -153,6 +165,8 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+
+
 
 
 
