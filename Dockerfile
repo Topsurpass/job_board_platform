@@ -32,7 +32,9 @@ COPY . .
 ENV PYTHONUNBUFFERED=1
 ENV DJANGO_SETTINGS_MODULE=job_board_platform.settings
 
-# Run database migrations before starting the server
-CMD python manage.py makemigrations && \
-    python manage.py migrate && \
-    python manage.py runserver 0.0.0.0:8000
+# Expose the application port
+EXPOSE 8000
+
+# Run migrations and start Gunicorn server
+CMD python manage.py migrate && \
+    gunicorn job_board_platform.wsgi:application --bind 0.0.0.0:8000 --workers 4 --threads 2 --timeout 120
