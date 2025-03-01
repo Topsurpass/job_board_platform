@@ -35,8 +35,6 @@ USER developer
 ENV PYTHONUNBUFFERED=1
 ENV DJANGO_SETTINGS_MODULE=job_board_platform.settings
 
-# Collect static files
-RUN python manage.py collectstatic --noinput
 
 # Expose the application port
 EXPOSE 8000
