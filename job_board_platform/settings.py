@@ -32,7 +32,8 @@ SECRET_KEY = env('SECRET_KEY', default='unsafe-default-secret-key')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool('DEBUG', default=True)
 
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS").split(" ")
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "").split(" ")
+# ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
 CORS_ALLOW_METHODS = [
     "GET",
