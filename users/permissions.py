@@ -29,7 +29,7 @@ class IsOwnerBasedOnRole(BasePermission):
         - Employers can read all objects but modify only their own.
         """
         if request.user.is_superuser:
-            return True  # Admin has full access
+            return True
 
         if request.method in SAFE_METHODS:
             return True
@@ -49,3 +49,20 @@ class IsOnlyAdmin(BasePermission):
     
     def has_object_permission(self, request, view, obj):
         return request.user.is_superuser or getattr(request.user, "role", None) == "admin"
+    
+
+class CanCreateUserOrEmployer(BasePermission):
+    """
+    Allows anyone to create a 'user' or 'employer' account but restricts 'admin' account creation to existing admins.
+    """
+    def has_permission(self, request, view):
+        if request.method == "POST":
+            role = request.data.get("role", "").lower()
+
+            if role in ["user", "employer"]:
+                return True
+
+            if role == "admin":
+                return request.user.is_authenticated and request.user.is_superuser
+
+        return False

@@ -2,9 +2,8 @@ from rest_framework.decorators import action
 from .models import User, UserProfile, EmployerProfile
 from .serializers import UserSerializer, UserProfileSerializer, EmployerProfileSerializer
 from rest_framework import generics, viewsets, filters
-from rest_framework.permissions import AllowAny
-from .tasks.email_tasks import send_welcome_email, send_employer_welcome_email
 from rest_framework.response import Response
+from drf_yasg import openapi
 from rest_framework import status
 from collections import defaultdict
 from users.permissions import IsOwnerBasedOnRole, IsOnlyAdmin
@@ -12,39 +11,65 @@ from jobs.pagination import CustomPagination
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-class UserCreateView(generics.CreateAPIView):
-    """Create new user account"""
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [AllowAny]
-    
-    def perform_create(self, serializer):
-        user = serializer.save()
-
-        if user.role == 'admin':
-            user.is_staff = True
-            user.is_superuser = True
-            user.save(update_fields=["is_staff", "is_superuser"])
-
-        elif user.role == 'user':
-            send_welcome_email.delay(user.email, user.first_name)
-
-        elif user.role == 'employer':
-            employer_profile = EmployerProfile.objects.filter(user=user).first()
-            if employer_profile:
-                send_employer_welcome_email.delay(user.email, user.company_name)
-
-        return Response({"message": "Account created successfully. A welcome email has been sent."}, status=status.HTTP_201_CREATED)
 
 class UserViewSet(viewsets.ModelViewSet):
     """API for retrieving and managing users, with categorized users endpoint."""
-    
     queryset = User.objects.all().order_by("-createdAt")
     serializer_class = UserSerializer
     permission_classes = [IsOnlyAdmin]
     filter_backends = [filters.SearchFilter]
     search_fields = ["email", "role", "company_name", "username"]
     pagination_class = CustomPagination
+
+    @swagger_auto_schema(
+        operation_summary="List all Users",
+        operation_description="Retrieve a paginated list of users. Only admin have priviledge",
+        responses={200: UserSerializer}
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Create new user",
+        operation_description="API for admin to create new user",
+        request_body=UserSerializer,
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve a user",
+        operation_description="Get detailed information about a specific user.",
+        responses={200: UserSerializer}
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_summary="Update a user",
+        operation_description="Modify an existing user. Only admins have privilege.",
+        request_body=UserSerializer,
+        responses={200: UserSerializer, 400: "Bad Request"}
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Partially Update a user",
+        operation_description="Modify certain fields of an existing user. Only admins have privilege.",
+        request_body=UserSerializer,
+        responses={200: UserSerializer, 400: "Bad Request"}
+    )
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_summary="Delete a user",
+        operation_description="Remove a user from the system. Only admins have privilege.",
+        responses={204: "No Content", 403: "Forbidden"}
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
 
 
     @swagger_auto_schema(
@@ -146,15 +171,99 @@ class UserViewSet(viewsets.ModelViewSet):
                 "error": "Invalid page number. Please check the available pages.",
             }
 class UserProfileDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Retrieve single user full profile for retrieval, update and deletion"""
+    """
+    Retrieve, update, or delete a user's full profile.
+
+    - `GET`: Retrieve a user profile.
+    - `PUT`: Update a user profile.
+    - `PATCH`: Partially update a user profile.
+    - `DELETE`: Delete a user profile.
+    """
     queryset = UserProfile.objects.all()
     serializer_class = UserProfileSerializer
     lookup_field = "user"
     permission_classes = [IsOwnerBasedOnRole]
 
+    @swagger_auto_schema(
+        operation_summary="Retrieve a user's profile",
+        operation_description="Retrieve a user's profile by user ID.",
+        responses={200: UserProfileSerializer(), 404: "User profile not found"},
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Update a user's profile",
+        operation_description="Full update of a user's profile.",
+        request_body=UserProfileSerializer,
+        responses={200: UserProfileSerializer(), 400: "Invalid data", 401: "Unauthenticated", 403: "Not authorized", 404: "User profile not found", 500: "Server error"},
+    )
+    def put(self, request, *args, **kwargs):
+        return super().put(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Update a user's profile partially",
+        operation_description="Partially update a user's profile.",
+        request_body=UserProfileSerializer,
+        responses={200: UserProfileSerializer(), 400: "Invalid data", 401: "Unauthenticated", 403: "Not authorized", 404: "User profile not found", 500: "Server error"},
+    )
+    def patch(self, request, *args, **kwargs):
+        return super().patch(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Delete a user's profile",
+        operation_description="Delete a user's profile.",
+        responses={204: "No Content", 401: "Unauthenticated", 403: "Not authorized", 404: "User profile not found", 500: "Server error"},
+    )
+    def delete(self, request, *args, **kwargs):
+        return super().delete(request, *args, **kwargs)
+
+
 class EmployerProfileDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Retrieve single user full profile for retrieval, update and deletion"""
+    """
+    Retrieve, update, or delete an employer's full profile.
+
+    - `GET`: Retrieve an employer profile.
+    - `PUT`: Update an employer profile.
+    - `PATCH`: Partially update an employer profile.
+    - `DELETE`: Delete an employer profile.
+    """
     queryset = EmployerProfile.objects.all()
     serializer_class = EmployerProfileSerializer
     lookup_field = "user"
     permission_classes = [IsOwnerBasedOnRole]
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve an employer's profile",
+        operation_description="Retrieve an employer's profile by user ID.",
+        responses={200: EmployerProfileSerializer(), 404: "Employer profile not found"},
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Update an employer's profile",
+        operation_description="Update an employer's profile.",
+        request_body=EmployerProfileSerializer,
+        responses={200: EmployerProfileSerializer(), 400: "Invalid data", 401: "Unauthenticated", 403: "Not authorized", 404: "Employer profile not found", 500: "Server error"},
+    )
+    def put(self, request, *args, **kwargs):
+        return super().put(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Partially update an employer's profile",
+        operation_description="Partially update an employer's profile.",
+        request_body=EmployerProfileSerializer,
+        responses={200: EmployerProfileSerializer(), 400: "Invalid data", 401: "Unauthenticated", 403: "Not authorized", 404: "Employer profile not found", 500: "Server error"},
+    )
+    def patch(self, request, *args, **kwargs):
+        return super().patch(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Delete an employer's profile",
+        operation_description="Delete an employer's profile.",
+        responses={204: "No content",  401: "Unauthenticated", 403: "Not authorized", 404: "Employer profile not found", 500: "Server error"},
+    )
+    def delete(self, request, *args, **kwargs):
+        return super().delete(request, *args, **kwargs)
+
