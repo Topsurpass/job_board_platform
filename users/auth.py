@@ -7,15 +7,20 @@ from rest_framework import status
 from .serializers import CustomTokenObtainPairSerializer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from rest_framework.exceptions import AuthenticationFailed
-from users.models import User
+from users.permissions import CanCreateUserOrEmployer
 from django.shortcuts import get_object_or_404
+from .models import User, EmployerProfile
+from .serializers import UserSerializer
+from rest_framework import generics
+from .tasks.email_tasks import send_welcome_email, send_employer_welcome_email
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     """Login to user account and return access and refresh tokens"""
     serializer_class = CustomTokenObtainPairSerializer
 
     @swagger_auto_schema(
+        operation_summary="Sign in to access resources.",
+        operation_description="API for all users to sign in into their account. It returns access and refresh token to access other protected endpoints.",
         responses={
             200: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
@@ -62,6 +67,8 @@ class CustomTokenRefreshView(TokenRefreshView):
     """Generate new access token using refresh token"""
 
     @swagger_auto_schema(
+        operation_summary="Get new access token using refresh token.",
+        operation_description="API to keep user signed in by generating new access token after previous access token has expired.",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
@@ -119,3 +126,37 @@ class CustomTokenRefreshView(TokenRefreshView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+class UserCreateView(generics.CreateAPIView):
+    """Create new user account"""
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [CanCreateUserOrEmployer]
+    
+    def perform_create(self, serializer):
+        user = serializer.save()
+        if user.role == 'admin':
+            user.is_staff = True
+            user.is_superuser = True
+            user.save(update_fields=["is_staff", "is_superuser"])
+
+        elif user.role == 'user':
+            send_welcome_email.delay(user.email, user.first_name)
+
+        elif user.role == 'employer':
+            employer_profile = EmployerProfile.objects.filter(user=user).first()
+            if employer_profile:
+                send_employer_welcome_email.delay(user.email, user.company_name)
+    
+    @swagger_auto_schema(
+        operation_summary="Sign up new account",
+        operation_description="API endpoint for creating a new account. Based on role, either a User or Employer profile is created automatically.",
+        request_body=UserSerializer,
+        responses={201: "Account created successfully. A welcome email has been sent."},
+    )
+    def post(self, request, *args, **kwargs):
+        super().post(request, *args, **kwargs)
+        return Response(
+            {"message": "Account created successfully. A welcome email has been sent."},
+            status=status.HTTP_201_CREATED,
+        )
