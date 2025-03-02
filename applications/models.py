@@ -8,8 +8,8 @@ class Application(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, unique=True)
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="applications")
     applicant = models.ForeignKey(User, on_delete=models.CASCADE, related_name="applications")
-    resume_link = models.URLField(max_length=255, blank=True, null=True)
-    cover_letter = models.TextField(blank=True, null=True)
+    resume_link = models.URLField(max_length=255)
+    cover_letter = models.TextField()
 
     STATUS_STATE = [
         ("pending", "Pending"),

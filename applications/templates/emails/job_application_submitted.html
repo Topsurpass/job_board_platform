@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Your Job Application Has Been Submitted</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        min-width: 100%;
+        font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      }
+      .container {
+        max-width: 640px;
+        margin: 0 auto;
+        background: #ffffff;
+      }
+      .header {
+        background: linear-gradient(135deg, #6366f1 0%, #2563eb 100%);
+        padding: 40px 0;
+        text-align: center;
+      }
+      .logo {
+        max-width: 220px;
+        height: auto;
+      }
+      .content {
+        padding: 40px 30px;
+        color: #374151;
+        line-height: 1.6;
+      }
+      .cta-button {
+        display: inline-block;
+        padding: 16px 32px;
+        background: #2563eb;
+        color: #ffffff !important;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        margin: 25px 0;
+      }
+      .cta-button:hover {
+        background: #1d4ed8;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      }
+      .footer {
+        background: #f8fafc;
+        padding: 30px 20px;
+        text-align: center;
+        color: #64748b;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h2 class="logo">JobNest</h2>
+      </div>
+
+      <div class="content">
+        <h1 style="color: #1e293b; font-size: 28px; margin: 0 0 15px 0">
+          Hi {{ first_name }}, your application has been submitted! 🎉
+        </h1>
+        <p style="color: #64748b; max-width: 500px; margin: 0 auto">
+          Thank you for applying for <strong>{{ job_title }}</strong> at
+          <strong>{{ company_name }}</strong>. We have sent your application to
+          the employer for review.
+        </p>
+
+        <p style="color: #64748b">
+          You will be notified once there is an update on your application.
+        </p>
+
+        <div style="text-align: center; margin: 40px 0">
+          <a href="http://localhost:3000/" class="cta-button"
+            >View Your Applications</a
+          >
+        </div>
+      </div>
+
+      <div class="footer">
+        <p style="margin: 8px 0; font-size: 0.9em">
+          © {{ current_year }} JobNest<br />
+          Helping You Land Your Dream Job
+        </p>
+        <p style="margin: 15px 0 0 0; font-size: 0.8em; color: #94a3b8">
+          Need help? Contact us at
+          <a href="mailto:{{ support_email }}">{{ support_email }}</a>
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
