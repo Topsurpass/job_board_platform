@@ -1,6 +1,7 @@
 from rest_framework import viewsets, filters, status
 from .models import Job, Industry, Category
 from applications.models import Application
+from applications.serializers import ApplicationSerializer
 from .serializers import IndustrySerializer, JobSerializer, CategorySerializer
 from .permissions import ReadOnlyModifyByAdminEmployer, ReadOnlyAdminModify
 from .pagination import CustomPagination
