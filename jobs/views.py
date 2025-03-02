@@ -30,6 +30,70 @@ class IndustryViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
+    @swagger_auto_schema(
+        operation_summary="List Industries",
+        operation_description="Retrieve a paginated list of industries. All users have access",
+        responses={200: IndustrySerializer(many=True)}
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Create new Industry",
+        operation_description="API that allows only admins create new industry.",
+        request_body=IndustrySerializer,
+        responses={
+            201: openapi.Response("Created submitted successfully.", schema=openapi.Schema(type=openapi.TYPE_OBJECT, properties={"message": openapi.Schema(type=openapi.TYPE_STRING)})),
+            400: openapi.Response("Validation error (e.g., already created).", schema=openapi.Schema(type=openapi.TYPE_OBJECT, properties={"error": openapi.Schema(type=openapi.TYPE_STRING)})),
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve an industry",
+        operation_description="Get detailed information about a specific industry.",
+        responses={200: IndustrySerializer}
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_summary="Update an industry",
+        operation_description="Modify an existing industry. Only admins have privilege.",
+        request_body=IndustrySerializer,
+        responses={200: IndustrySerializer, 400: "Bad Request"}
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Partially Update an industry",
+        operation_description="Modify certain fields of an existing industry. Only admins can perform this action.",
+        request_body=IndustrySerializer,
+        responses={200: IndustrySerializer, 400: "Bad Request"}
+    )
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_summary="Delete an industry",
+        operation_description="Remove an industry from the system with its jobs and categories. Only admins have privilege.",
+        responses={204: "No Content", 403: "Forbidden"}
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        method='get',
+        operation_summary="Get all job jobs in a specific industry",
+        operation_description="Retrieve a paginated list of jobs under a specific industry (Authorized and Unauthorized user can access).",
+        responses={
+            200: JobSerializer(many=True),
+            404: "Industry not found.",
+            500: "Server error."
+        }
+    )
     @action(detail=True, methods=["get"], url_path="jobs")
     def get_industry_jobs(self, request, pk=None):
         """Get paginated jobs for a specific industry."""
@@ -45,7 +109,17 @@ class IndustryViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.error(f"Error: {e}")
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+    
+    @swagger_auto_schema(
+        method='get',
+        operation_summary="Get all job categories in a specific industry",
+        operation_description="Retrieve a paginated list of job categories under a specific industry (Authorized and Unauthorized user can access).",
+        responses={
+            200: JobSerializer(many=True),
+            404: "Industry not found.",
+            500: "Server error."
+        }
+    )
     @action(detail=True, methods=["get"], url_path="categories")
     def get_industry_categories(self, request, pk=None):
         """Retrieve all categories under a specific industry."""
@@ -62,7 +136,6 @@ class IndustryViewSet(viewsets.ModelViewSet):
             logger.error(f"Error: {e}")
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 class CategoryViewSet(viewsets.ModelViewSet):
     """API for creating and modifying categories"""
     queryset = Category.objects.all().order_by('-created_at')
@@ -74,7 +147,71 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
+    
+    @swagger_auto_schema(
+        operation_summary="List Categories",
+        operation_description="Retrieve a paginated list of categories. All users have access",
+        responses={200: CategorySerializer(many=True)}
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
+    @swagger_auto_schema(
+        operation_summary="Create new Category",
+        operation_description="API that allows only admins create new category.",
+        request_body=CategorySerializer,
+        responses={
+            201: openapi.Response("Created submitted successfully.", schema=openapi.Schema(type=openapi.TYPE_OBJECT, properties={"message": openapi.Schema(type=openapi.TYPE_STRING)})),
+            400: openapi.Response("Validation error (e.g., already created).", schema=openapi.Schema(type=openapi.TYPE_OBJECT, properties={"error": openapi.Schema(type=openapi.TYPE_STRING)})),
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve a category",
+        operation_description="Get detailed information about a specific category.",
+        responses={200: CategorySerializer}
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_summary="Update a category",
+        operation_description="Modify an existing category. Only admins have privilege.",
+        request_body=CategorySerializer,
+        responses={200: CategorySerializer, 400: "Bad Request"}
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Partially Update a category",
+        operation_description="Modify certain fields of an existing category. Only admins can perform this action.",
+        request_body=CategorySerializer,
+        responses={200: CategorySerializer, 400: "Bad Request"}
+    )
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_summary="Delete a category",
+        operation_description="Remove a category from the system. Only admins have privilege.",
+        responses={204: "No Content", 403: "Forbidden"}
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        method='get',
+        operation_summary="Get all jobs in a specific category",
+        operation_description="Retrieve a paginated list of job under a specific category (Authorized and Unauthorized users can access).",
+        responses={
+            200: JobSerializer(many=True),
+            404: "Category not found.",
+            500: "Server error."
+        }
+    )
     @action(detail=True, methods=["get"], url_path="jobs")
     def get_category_jobs(self, request, pk=None):
         """Retrieve all jobs under a specific industry category."""
@@ -93,7 +230,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
 class JobViewSet(viewsets.ModelViewSet):
     """API endpoint for jobs with optimized categorized-jobs endpoint."""
-    
     queryset = Job.objects.select_related("industry", "posted_by").only(
         "id", "title", "industry__name", "location", "type", "posted_by__id"
     ).order_by("-posted_at")
@@ -108,6 +244,60 @@ class JobViewSet(viewsets.ModelViewSet):
         """Make the authenticated user the one who posted the job"""
         serializer.save(posted_by=self.request.user)
 
+    @swagger_auto_schema(
+        operation_summary="List Jobs",
+        operation_description="Retrieve a paginated list of jobs. All users have access",
+        responses={200: JobSerializer(many=True)}
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Create new Job",
+        operation_description="API that allows only admins and employer create new job.",
+        request_body=JobSerializer,
+        responses={
+            201: openapi.Response("Created submitted successfully.", schema=openapi.Schema(type=openapi.TYPE_OBJECT, properties={"message": openapi.Schema(type=openapi.TYPE_STRING)})),
+            400: openapi.Response("Validation error (e.g., already created).", schema=openapi.Schema(type=openapi.TYPE_OBJECT, properties={"error": openapi.Schema(type=openapi.TYPE_STRING)})),
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve a job",
+        operation_description="Get detailed information about a specific job.",
+        responses={200: JobSerializer}
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_summary="Update a job",
+        operation_description="Modify an existing job. Only admins and employer have privilege. Employer can only update their own job",
+        request_body=JobSerializer,
+        responses={200: JobSerializer, 400: "Bad Request"}
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Partially Update a job",
+        operation_description="Modify certain fields of an existing job. Only admins and employer have privilege. Employer can only update their own job",
+        request_body=JobSerializer,
+        responses={200: JobSerializer, 400: "Bad Request"}
+    )
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_summary="Delete a job",
+        operation_description="Remove a job from the system. Only admins and employer have privilege. Employer can only update their own job",
+        responses={204: "No Content", 403: "Forbidden"}
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+    
     def _paginate_queryset(self, request, job_list, category):
         """Helper method to paginate job listings"""
         page_size = int(request.GET.get("page_size", 10))
@@ -125,96 +315,26 @@ class JobViewSet(viewsets.ModelViewSet):
         }
     
     @swagger_auto_schema(
-        manual_parameters=[
-            openapi.Parameter(
-                "category",
-                openapi.IN_QUERY,
-                description="Category to filter jobs by (industry, location, or type)",
-                type=openapi.TYPE_STRING,
-                enum=["industry", "location", "type"],
-                required=True,
-            ),
-            openapi.Parameter(
-                "filter",
-                openapi.IN_QUERY,
-                description="Specific category value to filter (e.g., Lagos, Full-Time, Technology)",
-                type=openapi.TYPE_STRING,
-                required=False,
-            ),
-            openapi.Parameter(
-                "search",
-                openapi.IN_QUERY,
-                description="Search for jobs by title, industry, location, or type",
-                type=openapi.TYPE_STRING,
-                required=False,
-            ),
-            openapi.Parameter(
-                "page",
-                openapi.IN_QUERY,
-                description="Page number for pagination",
-                type=openapi.TYPE_INTEGER,
-                required=False,
-            ),
-            openapi.Parameter(
-                "page_size",
-                openapi.IN_QUERY,
-                description="Number of jobs per page (default: 10)",
-                type=openapi.TYPE_INTEGER,
-                required=False,
-            ),
-        ],
+        method='get',
+        operation_summary="Get all job categories.",
+        operation_description="Retrieve a paginated jobs, categorized and filtered dynamically by location, type, or industry. (Authorized and Unauthorized users can access).",
         responses={
-            200: openapi.Response(
-                "Jobs categorized and paginated successfully",
-                openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        "category_name": openapi.Schema(
-                            type=openapi.TYPE_OBJECT,
-                            properties={
-                                "total_count": openapi.Schema(type=openapi.TYPE_INTEGER),
-                                "jobs": openapi.Schema(
-                                    type=openapi.TYPE_ARRAY,
-                                    items=openapi.Schema(
-                                        type=openapi.TYPE_OBJECT,
-                                        properties={
-                                            "id": openapi.Schema(type=openapi.TYPE_INTEGER),
-                                            "title": openapi.Schema(type=openapi.TYPE_STRING),
-                                            "industry_name": openapi.Schema(type=openapi.TYPE_STRING),
-                                            "location": openapi.Schema(type=openapi.TYPE_STRING),
-                                            "type": openapi.Schema(type=openapi.TYPE_STRING),
-                                            "wage": openapi.Schema(type=openapi.TYPE_NUMBER),
-                                        },
-                                    ),
-                                ),
-                                "pagination": openapi.Schema(
-                                    type=openapi.TYPE_OBJECT,
-                                    properties={
-                                        "next": openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
-                                        "previous": openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
-                                    },
-                                ),
-                            },
-                        )
-                    },
-                ),
-            ),
-            400: "Invalid request (e.g., missing required parameters)",
-        },
+            200: JobSerializer(many=True),
+            404: "Invalid category. Use location, type, or industry.",
+            500: "No Category matches the given query."
+        }
     )
-
     @action(detail=False, methods=["get"], url_path="categorized-jobs")
     def get_categorized_jobs(self, request):
         """Get jobs categorized and filtered dynamically by location, type, or industry."""
-        category = request.GET.get("category")  # Can be "location", "type", or "industry"
-        category_filter = request.GET.get("filter")  # Specific value to filter by
+        category = request.GET.get("category")
+        category_filter = request.GET.get("filter")
         search_query = request.GET.get("search", "").strip()
 
         if category not in ["location", "type", "industry"]:
             return Response({"error": "Invalid category. Use location, type, or industry."}, status=status.HTTP_400_BAD_REQUEST)
 
         jobs = Job.objects.annotate(industry_name=F("industry__name"))
-
         if search_query:
             jobs = jobs.filter(
                 Q(title__icontains=search_query) |
@@ -223,10 +343,8 @@ class JobViewSet(viewsets.ModelViewSet):
                 Q(type__icontains=search_query)
             )
 
-        # Convert "industry" to match annotation name
         category_field = "industry_name" if category == "industry" else category
         jobs = jobs.values("id", "title", "industry_name", "location", "type", "wage").order_by("-posted_at")
-
         job_groups = defaultdict(list)
         for job in jobs:
             job_groups[job[category_field] or "Other"].append(job)
@@ -237,17 +355,26 @@ class JobViewSet(viewsets.ModelViewSet):
         paginated_data = {key: self._paginate_queryset(request, job_list, category) for key, job_list in job_groups.items()}
         return Response(paginated_data, status=status.HTTP_200_OK)
 
-   
+    @swagger_auto_schema(
+        method='get',
+        operation_summary="Get all job applicants.",
+        operation_description="Retrieve a paginated applicants for a specified job.",
+        responses={
+            200: ApplicationSerializer(many=True),
+            403: "You do not have permission to perform this action.",
+            404: "Job not found.",
+            500: "Server error."
+        }
+    )
     @action(detail=True, methods=["get"], url_path="applicants")
     def get_applicants(self, request, pk=None):
         """Optimized applicants retrieval with caching."""
         job = self.get_object()
         if not request.user.is_authenticated or (not request.user.is_superuser and job.posted_by != request.user):
             return Response(
-                {"detail": "Permission denied."}, 
+                {"detail": "You do not have permission to perform this action."}, 
                 status=status.HTTP_403_FORBIDDEN
             )
-
         cache_key = f"job_{pk}_applicants"
         cached_data = cache.get(cache_key)
         if cached_data:
@@ -258,9 +385,7 @@ class JobViewSet(viewsets.ModelViewSet):
         paginated_applicants = paginator.paginate_queryset(applicants, request)
         serializer = ApplicationSerializer(paginated_applicants, many=True)
         response_data = {
-            "count": applicants.count(),
             "applicants": serializer.data
         }
         cache.set(cache_key, response_data, timeout=60 * 10)
         return paginator.get_paginated_response(response_data)
-

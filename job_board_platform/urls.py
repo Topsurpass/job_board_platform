@@ -19,7 +19,7 @@ from django.urls import path, include
 from users.urls import userurlpatterns
 from jobs.urls import joburlpatterns
 from applications.urls import applicationurlpatterns
-from users.auth import CustomTokenObtainPairView, CustomTokenRefreshView
+from users.auth import CustomTokenObtainPairView, CustomTokenRefreshView, UserCreateView
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from rest_framework import permissions
@@ -43,6 +43,7 @@ urlpatterns = [
     path('api/', include(joburlpatterns)),
     path('api/', include(applicationurlpatterns)),
     path('api/auth/login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/auth/signup/', UserCreateView.as_view(), name='sign_up_new_account'),
     path('api/auth/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
     path('api/docs/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('api/docs/redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
