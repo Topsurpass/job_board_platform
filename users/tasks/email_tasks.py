@@ -13,14 +13,14 @@ def send_welcome_email(self, recipient_email: str, first_name: str) -> None:
     """Asynchronously sends a styled welcome email to new users with retry capabilities."""
     try:
         # Email configuration
-        subject = "🎉 Welcome to EaseWork - Find your desired jobs with ease!"
-        from_email = f"EaseWork Team <{settings.DEFAULT_FROM_EMAIL}>"
+        subject = "🎉 Welcome to JobNest - Find your desired jobs with ease!"
+        from_email = f"JobNest Team <{settings.DEFAULT_FROM_EMAIL}>"
         
         # Context for template rendering
         context = {
             'first_name': first_name,
             'support_email': settings.SUPPORT_EMAIL,
-            'company_name': "EaseWork",
+            'company_name': "JobNest",
             'current_year': datetime.datetime.now().year
         }
 
@@ -57,14 +57,14 @@ def send_welcome_email(self, recipient_email: str, first_name: str) -> None:
 def send_employer_welcome_email(self, recipient_email: str, company_name: str) -> None:
     """Asynchronously sends a styled welcome email to new employers with retry capabilities."""
     try:
-        subject = "🚀 Welcome to EaseWork - Start Hiring the Best Talent!"
-        from_email = f"EaseWork Team <{settings.DEFAULT_FROM_EMAIL}>"
+        subject = "🚀 Welcome to JobNest - Start Hiring the Best Talent!"
+        from_email = f"JobNest Team <{settings.DEFAULT_FROM_EMAIL}>"
         
         # Context for template rendering
         context = {
             'company_name': company_name,
             'support_email': settings.SUPPORT_EMAIL,
-            'platform_name': "EaseWork",
+            'platform_name': "JobNest",
             'current_year': datetime.datetime.now().year
         }
 
