@@ -3,14 +3,14 @@ from .models import Application
 from jobs.models import Job
 
 
-class JobSerializer(serializers.ModelSerializer):
+class AppJobSerializer(serializers.ModelSerializer):
     """Serializer to display job details instead of just the job ID"""
     class Meta:
         model = Job
         exclude = ["industry", "category", "posted_by"]
 
 class ApplicationSerializer(serializers.ModelSerializer):
-    job = JobSerializer(read_only=True)
+    job = AppJobSerializer(read_only=True)
     class Meta:
         model = Application
         fields = '__all__'
