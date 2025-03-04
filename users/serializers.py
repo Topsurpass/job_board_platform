@@ -44,19 +44,80 @@ class UserSerializer(serializers.ModelSerializer):
         user.user_permissions.set(user_permissions)
         return user
     
+class UserProfileDisplaySerializer(serializers.ModelSerializer):
+    """Serializer for User model"""
+    class Meta:
+        model = User
+        exclude = ["company_name", "industry", "groups", "user_permissions", "password", "createdAt"]
+        extra_kwargs = {
+            'updatedAt': {'read_only': True},
+            'is_staff': {'read_only': True},
+            'is_superuser': {'read_only': True},
+            'role': {'read_only': True},
+            'password': {'read_only': True},
+            'groups': {'read_only': True},
+            'user_permissions': {'read_only': True},
+        }
 class UserProfileSerializer(serializers.ModelSerializer):
     """Serializer for the UserProfile model"""
-    user = UserSerializer(read_only=True)
+    user = UserProfileDisplaySerializer()
     class Meta:
         model = UserProfile
         fields = '__all__'
 
+    def update(self, instance, validated_data):
+        """Update both User and UserProfile."""
+        user_data = validated_data.pop("user", None)
+        user_instance = instance.user
+
+        if user_data:
+            for attr, value in user_data.items():
+                setattr(user_instance, attr, value)
+            user_instance.save()
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        return instance
+    
+class EmployerProfileDisplaySerializer(serializers.ModelSerializer):
+    """Serializer for User model"""
+    class Meta:
+        model = User
+        exclude = ["groups", "user_permissions", "password", "createdAt"]
+        extra_kwargs = {
+            'updatedAt': {'read_only': True},
+            'is_staff': {'read_only': True},
+            'is_superuser': {'read_only': True},
+            'role': {'read_only': True},
+            'password': {'read_only': True},
+            'groups': {'read_only': True},
+            'user_permissions': {'read_only': True},
+        }
+
 class EmployerProfileSerializer(serializers.ModelSerializer):
     """"Serializer for Employer"""
-    user = UserSerializer(read_only=True)
+    user = EmployerProfileDisplaySerializer()
     class Meta:
         model = EmployerProfile
         fields = '__all__'
+
+    def update(self, instance, validated_data):
+        """Update both Employer and EmployerProfile."""
+        user_data = validated_data.pop("user", None)
+        user_instance = instance.user
+
+        if user_data:
+            for attr, value in user_data.items():
+                setattr(user_instance, attr, value)
+            user_instance.save()
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        return instance
 
 class CustomTokenObtainPairSerializer(serializers.Serializer):
     """Serializer for the CustomTokenObtainPairView"""

@@ -59,6 +59,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
+    def save(self, *args, **kwargs):
+        """Ensure password is hashed when saving via Django Admin"""
+        if self.pk:
+            stored_user = User.objects.filter(pk=self.pk).first()
+            if stored_user and stored_user.password != self.password:
+                self.set_password(self.password)
+
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.email}"
 
