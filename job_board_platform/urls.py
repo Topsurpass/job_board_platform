@@ -22,6 +22,8 @@ from applications.urls import applicationurlpatterns
 from users.auth import CustomTokenObtainPairView, CustomTokenRefreshView, UserCreateView
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from django.conf import settings
+from django.conf.urls.static import static
 from rest_framework import permissions
 
 schema_view = get_schema_view(
@@ -48,3 +50,6 @@ urlpatterns = [
     path('api/docs/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('api/docs/redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
