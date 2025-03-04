@@ -75,15 +75,16 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Limit applications to the ones the user is allowed to see."""
         user = self.request.user
+
+        if not user.is_authenticated:
+            return Application.objects.none()
         if user.is_superuser:
             return Application.objects.all()
-
-        if user.role == "employer":
-            return Application.objects.filter(job__posted_by=user)
-
-        if user.role == "user":
-            return Application.objects.filter(applicant=user)
-
+        if hasattr(user, "role"):
+            if user.role == "employer":
+                return Application.objects.filter(job__posted_by=user)
+            if user.role == "user":
+                return Application.objects.filter(applicant=user)
         return Application.objects.none()
 
     def perform_create(self, serializer):
