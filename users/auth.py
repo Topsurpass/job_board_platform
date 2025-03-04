@@ -108,6 +108,7 @@ class CustomTokenRefreshView(TokenRefreshView):
                 properties={
                     "access_token": openapi.Schema(type=openapi.TYPE_STRING, description="New JWT access token"),
                     "refresh_token": openapi.Schema(type=openapi.TYPE_STRING, description="New refresh token"),
+                    'user': UserSerializer,
                 }
             ),
             400: openapi.Response("Bad request"),
