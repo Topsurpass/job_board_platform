@@ -27,7 +27,19 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 properties={
                     'access_token': openapi.Schema(type=openapi.TYPE_STRING, description="JWT access token"),
                     'refresh_token': openapi.Schema(type=openapi.TYPE_STRING, description="JWT refresh token"),
-                    'user': UserSerializer,
+                    'user': openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'id': openapi.Schema(type=openapi.TYPE_INTEGER, description="User ID"),
+                        'username': openapi.Schema(type=openapi.TYPE_STRING, description="Username"),
+                        'email': openapi.Schema(type=openapi.TYPE_STRING, description="User email"),
+                        'first_name': openapi.Schema(type=openapi.TYPE_STRING, description="User first_name"),
+                        'last_name': openapi.Schema(type=openapi.TYPE_STRING, description="User last_name"),
+                        'is_staff': openapi.Schema(type=openapi.TYPE_BOOLEAN, description="is_staff"),
+                        'is_active': openapi.Schema(type=openapi.TYPE_BOOLEAN, description="is_active"),
+                        'phone': openapi.Schema(type=openapi.TYPE_STRING, description="User phone"),
+                    }
+                )
                 }
             ),
             400: openapi.Response("Bad request"),
@@ -108,7 +120,19 @@ class CustomTokenRefreshView(TokenRefreshView):
                 properties={
                     "access_token": openapi.Schema(type=openapi.TYPE_STRING, description="New JWT access token"),
                     "refresh_token": openapi.Schema(type=openapi.TYPE_STRING, description="New refresh token"),
-                    'user': UserSerializer,
+                    'user': openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'id': openapi.Schema(type=openapi.TYPE_INTEGER, description="User ID"),
+                        'username': openapi.Schema(type=openapi.TYPE_STRING, description="Username"),
+                        'email': openapi.Schema(type=openapi.TYPE_STRING, description="User email"),
+                        'first_name': openapi.Schema(type=openapi.TYPE_STRING, description="User first_name"),
+                        'last_name': openapi.Schema(type=openapi.TYPE_STRING, description="User last_name"),
+                        'is_staff': openapi.Schema(type=openapi.TYPE_BOOLEAN, description="is_staff"),
+                        'is_active': openapi.Schema(type=openapi.TYPE_BOOLEAN, description="is_active"),
+                        'phone': openapi.Schema(type=openapi.TYPE_STRING, description="User phone"),
+                    }
+                    )
                 }
             ),
             400: openapi.Response("Bad request"),
