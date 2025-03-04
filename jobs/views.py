@@ -459,14 +459,18 @@ class JobViewSet(viewsets.ModelViewSet):
                 Q(title__icontains=search_query) |
                 Q(industry__name__icontains=search_query) |
                 Q(location__icontains=search_query) |
-                Q(type__icontains=search_query)
+                Q(type__contains=[search_query])
             )
 
         category_field = "industry_name" if category == "industry" else category
         jobs = jobs.values("id", "title", "industry_name", "location", "type", "wage").order_by("-posted_at")
         job_groups = defaultdict(list)
         for job in jobs:
-            job_groups[job[category_field] or "Other"].append(job)
+            if category == "type":
+                for job_type in job["type"]:
+                    job_groups[job_type].append(job)
+            else:
+                job_groups[job[category_field] or "Other"].append(job)
 
         if category_filter:
             job_groups = {category_filter: job_groups.get(category_filter, [])}
