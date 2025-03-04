@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Application
 from jobs.models import Job
+from users.models import User
 
 
 class AppJobSerializer(serializers.ModelSerializer):
@@ -9,7 +10,17 @@ class AppJobSerializer(serializers.ModelSerializer):
         model = Job
         exclude = ["industry", "category", "posted_by"]
 
+class ApplicantSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id","first_name","last_name", "email", "phone"]
+
+class ApplicationBodySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Application
+        exclude = ["status", "applicant"]
 class ApplicationSerializer(serializers.ModelSerializer):
+    applicant = ApplicantSerializer(read_only=True)
     job = AppJobSerializer(read_only=True)
     class Meta:
         model = Application

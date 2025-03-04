@@ -2,7 +2,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework import viewsets, filters, serializers, status
 from .models import Application
-from .serializers import ApplicationSerializer
+from .serializers import ApplicationSerializer, ApplicationBodySerializer
 from .permissions import ReadCreateOnlyAdminModify
 from jobs.pagination import CustomPagination
 from rest_framework.response import Response
@@ -19,7 +19,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     pagination_class = CustomPagination
 
     @swagger_auto_schema(
-        operation_summary="List Applications",
+        operation_summary="List all job aplications applied by user. Employers only see job applications for jobs they posted",
         operation_description="Retrieve a paginated list of job applications based on user role. Users get to see all their applications, Employers only see list of applications for jobs posted by them",
         responses={200: ApplicationSerializer(many=True)}
     )
@@ -27,7 +27,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         return super().list(request, *args, **kwargs)
 
     @swagger_auto_schema(
-        operation_summary="Retrieve an Application",
+        operation_summary="Retrieve a specific job Application applied to",
         operation_description="Get detailed information about a specific job a user applied to.",
         responses={200: ApplicationSerializer}
     )
@@ -35,11 +35,11 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         return super().retrieve(request, *args, **kwargs)
 
     @swagger_auto_schema(
-        operation_summary="Create a Job Application",
+        operation_summary="Apply for a  job",
         operation_description="Submit a new job application by a user. A user can only apply once per job.",
-        request_body=ApplicationSerializer,
+        request_body=ApplicationBodySerializer,
         responses={
-            201: openapi.Response("Application submitted successfully.", schema=openapi.Schema(type=openapi.TYPE_OBJECT, properties={"message": openapi.Schema(type=openapi.TYPE_STRING)})),
+            201: ApplicationSerializer,
             400: openapi.Response("Validation error (e.g., already applied).", schema=openapi.Schema(type=openapi.TYPE_OBJECT, properties={"error": openapi.Schema(type=openapi.TYPE_STRING)})),
         }
     )
