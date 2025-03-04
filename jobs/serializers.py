@@ -9,10 +9,11 @@ class IndustrySerializer(serializers.ModelSerializer):
         fields = ('id', 'name')
 
 class CategorySerializer(serializers.ModelSerializer):
+    industry = IndustrySerializer()
     class Meta:
         model = Category
         fields = ('id', 'name', 'industry')
-        extra_kwargs = {'industry': {'write_only': True}}
+        # extra_kwargs = {'industry': {'write_only': True}}
 
 class JobSerializer(serializers.ModelSerializer):
     no_of_applicants = serializers.SerializerMethodField()
