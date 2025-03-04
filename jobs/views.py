@@ -504,3 +504,47 @@ class JobViewSet(viewsets.ModelViewSet):
             "applicants": serializer.data
         }
         return paginator.get_paginated_response(response_data)
+    
+    @swagger_auto_schema(
+        method="get",
+        operation_summary="Get distinct job locations",
+        operation_description="Returns a paginated list of distinct job locations.",
+        manual_parameters=[
+            openapi.Parameter(
+                name="page",
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                description="Page number for pagination",
+            ),
+            openapi.Parameter(
+                name="page_size",
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                description="Number of locations per page (default: 20, max: 100)",
+            ),
+        ],
+        responses={
+            200: openapi.Response(
+                description="Paginated list of distinct job locations",
+                examples={
+                    "application/json": {
+                        "count": 2,
+                        "next": "http://localhost:8000/api/job/locations/?page=2",
+                        "previous": None,
+                        "results": ["Lagos", "Abuja", "Port Harcourt", "Kano", "Ibadan"],
+                    }
+                },
+            )
+        },
+    )
+    @action(detail=False, methods=["get"])
+    def locations(self, request):
+        """Get paginated distinct job locations"""
+        search_query = request.GET.get("search", "").strip()
+        locations = Job.objects.exclude(location="").values_list("location", flat=True).distinct()
+        if search_query:
+            locations = [loc for loc in locations if search_query.lower() in loc.lower()]
+        paginator = CustomPagination()
+        result_page = paginator.paginate_queryset(locations, request)
+        return paginator.get_paginated_response(result_page)
+
