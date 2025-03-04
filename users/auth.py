@@ -27,6 +27,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 properties={
                     'access_token': openapi.Schema(type=openapi.TYPE_STRING, description="JWT access token"),
                     'refresh_token': openapi.Schema(type=openapi.TYPE_STRING, description="JWT refresh token"),
+                    'user': UserSerializer,
                 }
             ),
             400: openapi.Response("Bad request"),
@@ -137,13 +138,30 @@ class CustomTokenRefreshView(TokenRefreshView):
                 if field in refresh:
                     new_refresh_token[field] = refresh[field]
 
+            user_data = {
+                "id": user.id,
+                "email": user.email,
+                "firstname": user.first_name,
+                "lastname": user.last_name,
+                "isStaff": user.is_staff,
+                "isSuperAdmin": user.is_superuser,
+                "isActive": user.is_active,
+                "role": user.role,
+                "phone": user.phone,
+                "groups": list(user.groups.values_list("name", flat=True)),
+                "permissions": list(user.user_permissions.values_list("codename", flat=True)),
+            }
+
             if user.role == "employer":
                 new_refresh_token["company_name"] = user.company_name
                 new_refresh_token["industry"] = user.industry
+                user_data["company_name"] = user.company_name
+                user_data["industry"] = user.industry
 
             return Response({
                 "access_token": str(new_refresh_token.access_token),
                 "refresh_token": str(new_refresh_token),
+                "user": user_data
             }, status=status.HTTP_200_OK)
 
         except TokenError:
@@ -174,7 +192,7 @@ class UserCreateView(generics.CreateAPIView):
                 send_employer_welcome_email.delay(user.email, user.company_name)
     
     @swagger_auto_schema(
-        operation_summary="Sign up new account",
+        operation_summary="Sign up new account. (Public access signup)",
         operation_description="API endpoint for creating a new account. Based on role, either a User or Employer profile is created automatically.",
         request_body=UserSerializer,
         responses={201: "Account created successfully. A welcome email has been sent."},
