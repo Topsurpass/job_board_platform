@@ -15,9 +15,6 @@ class IsOwnerBasedOnRole(BasePermission):
         if request.user.is_superuser:
             return True
 
-        if request.method in SAFE_METHODS:
-            return True  
-
         # Users and employers can only modify their own data
         return getattr(request.user, "role", None) in ["user", "employer"]
 
@@ -29,9 +26,6 @@ class IsOwnerBasedOnRole(BasePermission):
         - Employers can read all objects but modify only their own.
         """
         if request.user.is_superuser:
-            return True
-
-        if request.method in SAFE_METHODS:
             return True
 
         if request.user.role in ["user", "employer"]:
@@ -65,4 +59,4 @@ class CanCreateUserOrEmployer(BasePermission):
             if role == "admin":
                 return request.user.is_authenticated and request.user.is_superuser
 
-        return False
+        return True

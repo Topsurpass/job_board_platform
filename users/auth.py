@@ -3,7 +3,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, permissions
 from .serializers import CustomTokenObtainPairSerializer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -12,6 +12,7 @@ from django.shortcuts import get_object_or_404
 from .models import User, EmployerProfile
 from .serializers import UserSerializer
 from rest_framework import generics
+from rest_framework.views import APIView
 from .tasks.email_tasks import send_welcome_email, send_employer_welcome_email
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -228,3 +229,37 @@ class UserCreateView(generics.CreateAPIView):
             {"message": "Account created successfully. A welcome email has been sent."},
             status=status.HTTP_201_CREATED,
         )
+    
+
+class LogoutView(APIView):
+    """Logout endpoint that blacklists the refresh token."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary="Logout user",
+        operation_description="Logs out the user by blacklisting the provided refresh token.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "refresh_token": openapi.Schema(type=openapi.TYPE_STRING, description="Refresh token"),
+            },
+            required=["refresh_token"],
+        ),
+        responses={
+            205: "Successfully logged out",
+            400: "Invalid token",
+            401: "Authentication required"
+        }
+    )
+    def post(self, request):
+        refresh_token = request.data.get("refresh_token")
+
+        if not refresh_token:
+            return Response({"error": "refresh_token is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response({"message": "Successfully logged out"}, status=status.HTTP_205_RESET_CONTENT)
+        except Exception:
+            return Response({"error": "Invalid or expired refresh token"}, status=status.HTTP_400_BAD_REQUEST)
