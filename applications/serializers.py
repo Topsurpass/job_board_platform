@@ -21,7 +21,7 @@ class ApplicationBodySerializer(serializers.ModelSerializer):
         exclude = ["status", "applicant"]
 class ApplicationSerializer(serializers.ModelSerializer):
     applicant = ApplicantSerializer(read_only=True)
-    job = AppJobSerializer(read_only=True)
+    # job = AppJobSerializer(read_only=True)
     class Meta:
         model = Application
         fields = '__all__'
