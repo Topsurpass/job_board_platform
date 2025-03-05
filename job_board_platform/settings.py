@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_celery_results',
     'whitenoise.runserver_nostatic',
+    'rest_framework_simplejwt.token_blacklist',
     'django_filters',
     'rest_framework',
     'rest_framework_simplejwt',
@@ -203,6 +204,7 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
     'USER_ID_FIELD': 'id',
 }
 
