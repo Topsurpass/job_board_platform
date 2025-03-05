@@ -14,6 +14,7 @@ from drf_yasg import openapi
 from collections import defaultdict
 from django.core.paginator import Paginator
 from django.db.models import F, Q
+from django.http import Http404
 
 
 logger = logging.getLogger(__name__)
@@ -262,8 +263,8 @@ class CategoryViewSet(viewsets.ModelViewSet):
             paginated_jobs = paginator.paginate_queryset(jobs, request)
             serializer = JobSerializer(paginated_jobs, many=True)
             return paginator.get_paginated_response(serializer.data)
-        except Category.DoesNotExist:
-            return Response({"error": "Category not found."}, status=status.HTTP_404_NOT_FOUND)
+        except Http404:
+            return Response({"error": "No Category matches the given query."}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             logger.error(f"Error: {e}")
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
