@@ -37,8 +37,8 @@ class UserSerializer(serializers.ModelSerializer):
         password = validated_data.pop('password')
         groups = validated_data.pop('groups', [])
         user_permissions = validated_data.pop('user_permissions', [])
-        user = User.objects.create_user(**validated_data)
-        user.set_password(password)
+        user = User.objects.create_user(password=password, **validated_data) 
+        # user.set_password(password)
         user.save()
         user.groups.set(groups)
         user.user_permissions.set(user_permissions)
@@ -135,6 +135,9 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
             user = User.objects.get(email=email)
         except User.DoesNotExist:
             raise AuthenticationFailed('User with this email does not exist.')
+        
+        if not user.is_active:
+            raise AuthenticationFailed('User account is inactive.')
 
         if not user.check_password(password):
             raise AuthenticationFailed('Incorrect Password')
