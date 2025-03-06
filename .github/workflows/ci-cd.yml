@@ -9,22 +9,22 @@ jobs:
   run-tests:
     runs-on: ubuntu-latest
 
-    env:
-        POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-        POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-        POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-        POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
-        POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
-        CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
-        ALLOWED_HOSTS: ${{ secrets.ALLOWED_HOSTS }}
-        DEFAULT_FROM_EMAIL: ${{ secrets.DEFAULT_FROM_EMAIL }}
-        EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
-        EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
-        SUPPORT_EMAIL: ${{ secrets.SUPPORT_EMAIL }}
-
     steps:
       - name: Checkout develop branch
         uses: actions/checkout@v4
+
+        env:
+            POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+            POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+            POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+            POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
+            POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
+            CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
+            ALLOWED_HOSTS: ${{ secrets.ALLOWED_HOSTS }}
+            DEFAULT_FROM_EMAIL: ${{ secrets.DEFAULT_FROM_EMAIL }}
+            EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
+            EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
+            SUPPORT_EMAIL: ${{ secrets.SUPPORT_EMAIL }}
 
       - name: Build and start services using docker-compose
         run: docker compose up -d --build
