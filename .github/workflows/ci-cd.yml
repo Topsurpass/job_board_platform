@@ -13,6 +13,7 @@ jobs:
       - name: Checkout develop branch
         uses: actions/checkout@v4
 
+      - name: Build and start services using docker-compose
         env:
             POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
             POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
@@ -26,7 +27,6 @@ jobs:
             EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
             SUPPORT_EMAIL: ${{ secrets.SUPPORT_EMAIL }}
 
-      - name: Build and start services using docker-compose
         run: docker compose up -d --build
 
       - name: Wait for services to be ready
