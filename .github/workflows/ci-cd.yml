@@ -13,19 +13,31 @@ jobs:
       - name: Checkout develop branch
         uses: actions/checkout@v4
 
+      - name: Set environment variables
+        run: |
+          echo "POSTGRES_DB=job_board" >> $GITHUB_ENV
+          echo "POSTGRES_USER=Temz" >> $GITHUB_ENV
+          echo "POSTGRES_PASSWORD=Temitope_12" >> $GITHUB_ENV
+          echo "POSTGRES_HOST=job_board_postgres_db" >> $GITHUB_ENV
+          echo "POSTGRES_PORT=5432" >> $GITHUB_ENV
+          echo "DEFAULT_FROM_EMAIL=admin@gmail.com" >> $GITHUB_ENV
+          echo "EMAIL_HOST_PASSWORD=password" >> $GITHUB_ENV
+          echo "EMAIL_HOST_USER=admin@gmail.com" >> $GITHUB_ENV
+          echo "SUPPORT_EMAIL=admisupportn@gmail.com" >> $GITHUB_ENV
+
       - name: Build and start services using docker-compose
-        env:
-            POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-            POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-            POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-            POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
-            POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
-            CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
-            ALLOWED_HOSTS: ${{ secrets.ALLOWED_HOSTS }}
-            DEFAULT_FROM_EMAIL: ${{ secrets.DEFAULT_FROM_EMAIL }}
-            EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
-            EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
-            SUPPORT_EMAIL: ${{ secrets.SUPPORT_EMAIL }}
+        # env:
+        #     POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+        #     POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+        #     POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        #     POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
+        #     POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
+        #     CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
+        #     ALLOWED_HOSTS: ${{ secrets.ALLOWED_HOSTS }}
+        #     DEFAULT_FROM_EMAIL: ${{ secrets.DEFAULT_FROM_EMAIL }}
+        #     EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
+        #     EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
+        #     SUPPORT_EMAIL: ${{ secrets.SUPPORT_EMAIL }}
 
         run: docker compose up -d --build
 
