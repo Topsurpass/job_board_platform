@@ -1,65 +1,73 @@
-services:
-    redis:
-        image: redis:alpine
-        ports:
-            - "6379:6379"
-        volumes:
-            - redis_data:/data
-        healthcheck:
-            test: ["CMD", "redis-cli", "ping"]
-            interval: 10s
-            retries: 10
-            timeout: 10s
+name: CI/CD Pipeline
 
-    db:
-        image: postgres:15
-        container_name: job_board_postgres_db
-        environment:
-            POSTGRES_DB: ${POSTGRES_DB}
-            POSTGRES_USER: ${POSTGRES_USER}
-            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-        ports:
-            - "5432:5432"
-        healthcheck:
-            test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-            interval: 10s
-            retries: 5
-            timeout: 5s
-        volumes:
-            - postgres_data:/var/lib/postgresql/data
+on:
+  push:
+    branches:
+      - develop
 
-    web:
-        build: .
-        depends_on:
-            redis:
-                condition: service_healthy
-            db:
-                condition: service_healthy
-        volumes:
-            - .:/app
-        ports:
-            - "8000:8000"
-        environment:
-            - DJANGO_SETTINGS_MODULE=job_board_platform.settings
-            - DATABASE_URL=postgres://developer:password@db:5432/job_board
-        command: >
-            sh -c "python manage.py migrate &&
-            python manage.py runserver 0.0.0.0:8000
-            "
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
 
-    worker:
-        build: .
-        depends_on:
-            redis:
-                condition: service_healthy
-            web:
-                condition: service_started
-        volumes:
-            - .:/app
-        environment:
-            - DJANGO_SETTINGS_MODULE=job_board_platform.settings
-        command: celery -A job_board_platform worker --loglevel=info
+    steps:
+      - name: Checkout develop branch
+        uses: actions/checkout@v4
 
-volumes:
-    redis_data:
-    postgres_data:
+      - name: Set environment variables
+        run: |
+          echo "POSTGRES_DB=job_board" >> $GITHUB_ENV
+          echo "POSTGRES_USER=Temz" >> $GITHUB_ENV
+          echo "POSTGRES_PASSWORD=Temitope_12" >> $GITHUB_ENV
+          echo "POSTGRES_HOST=job_board_postgres_db" >> $GITHUB_ENV
+          echo "POSTGRES_PORT=5432" >> $GITHUB_ENV
+          echo "DEFAULT_FROM_EMAIL=admin@gmail.com" >> $GITHUB_ENV
+          echo "EMAIL_HOST_PASSWORD=password" >> $GITHUB_ENV
+          echo "EMAIL_HOST_USER=admin@gmail.com" >> $GITHUB_ENV
+          echo "SUPPORT_EMAIL=admisupportn@gmail.com" >> $GITHUB_ENV
+
+      - name: Build and start services using docker-compose
+        run: docker compose up -d --build
+
+      - name: Wait for PostgreSQL to be Ready
+        run: |
+          echo "Waiting for PostgreSQL to start..."
+          while ! docker exec job_board_postgres_db pg_isready -U Temz; do
+            sleep 2
+          done
+          echo "PostgreSQL is ready!"
+
+      - name: Run Migrations
+        run: docker compose exec -T web python manage.py migrate
+
+      - name: Collect Static Files
+        run: docker compose exec -T web python manage.py collectstatic --noinput
+
+      - name: Check Docker container status
+        run: docker ps -a
+
+      - name: Show logs for debugging
+        run: docker compose logs web
+
+      - name: Run Tests inside the container
+        run: docker compose exec -T web pytest --disable-warnings
+
+      - name: Stop and clean up Docker containers
+        run: docker compose down
+
+      - name: Checkout main branch
+        run: |
+          git fetch origin main
+          git checkout main
+
+      - name: Configure Git user
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
+      - name: Merge develop into main and push
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          git checkout main
+          git merge --no-ff develop -m "Auto-merged develop into main after successful tests"
+          git push https://x-access-token:${GH_TOKEN}@github.com/Topsurpass/job_board_platform.git main
