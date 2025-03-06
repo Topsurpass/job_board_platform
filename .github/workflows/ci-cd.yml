@@ -26,7 +26,8 @@ jobs:
           echo "SUPPORT_EMAIL=admisupportn@gmail.com" >> $GITHUB_ENV
 
       - name: Build and start services using docker-compose
-        run: docker compose up -d --build
+        run: |
+            docker compose up -d --build
 
       - name: Wait for PostgreSQL to be Ready
         run: |
@@ -36,20 +37,23 @@ jobs:
           done
           echo "PostgreSQL is ready!"
 
+      - name: display web logs
+        run: docker logs job_board_platform-web-1
+
       - name: Run Migrations
-        run: docker compose exec -T web python manage.py migrate
+        run: docker compose exec -T job_board_platform-web-1 python manage.py migrate
 
       - name: Collect Static Files
-        run: docker compose exec -T web python manage.py collectstatic --noinput
+        run: docker compose exec -T job_board_platform-web-1 python manage.py collectstatic --noinput
 
       - name: Check Docker container status
         run: docker ps -a
 
       - name: Show logs for debugging
-        run: docker compose logs web
+        run: docker compose logs job_board_platform-web-1
 
       - name: Run Tests inside the container
-        run: docker compose exec -T web pytest --disable-warnings
+        run: docker compose exec -T job_board_platform-web-1 pytest --disable-warnings
 
       - name: Stop and clean up Docker containers
         run: docker compose down
