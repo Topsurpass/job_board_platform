@@ -13,38 +13,30 @@ jobs:
       - name: Checkout develop branch
         uses: actions/checkout@v4
 
-      - name: Set environment variables
+      - name: Create .env file
         run: |
-          echo "POSTGRES_DB=job_board" >> $GITHUB_ENV
-          echo "POSTGRES_USER=Temz" >> $GITHUB_ENV
-          echo "POSTGRES_PASSWORD=Temitope_12" >> $GITHUB_ENV
-          echo "POSTGRES_HOST=job_board_postgres_db" >> $GITHUB_ENV
-          echo "POSTGRES_PORT=5432" >> $GITHUB_ENV
-          echo "DEFAULT_FROM_EMAIL=admin@gmail.com" >> $GITHUB_ENV
-          echo "EMAIL_HOST_PASSWORD=password" >> $GITHUB_ENV
-          echo "EMAIL_HOST_USER=admin@gmail.com" >> $GITHUB_ENV
-          echo "SUPPORT_EMAIL=admisupportn@gmail.com" >> $GITHUB_ENV
-
+          echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> .env
+          echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env
+          echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
+          echo "POSTGRES_HOST=${{ secrets.POSTGRES_HOST }}" >> .env
+          echo "POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}" >> .env
+          echo "CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}" >> .env
+          echo "ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}" >> .env
+          echo "DEFAULT_FROM_EMAIL=${{ secrets.DEFAULT_FROM_EMAIL }}" >> .env
+          echo "EMAIL_HOST_PASSWORD=${{ secrets.EMAIL_HOST_PASSWORD }}" >> .env
+          echo "EMAIL_HOST_USER=${{ secrets.EMAIL_HOST_USER }}" >> .env
+          echo "SUPPORT_EMAIL=${{ secrets.SUPPORT_EMAIL }}" >> .env
+          
       - name: Build and start services using docker-compose
+        run: docker compose up -d --build
+
+      - name: Wait for services to be ready
         run: |
-            docker compose up -d --build
+          echo "Waiting for web service to start..."
+          sleep 20
 
-      - name: Wait for PostgreSQL to be Ready
-        run: |
-          echo "Waiting for PostgreSQL to start..."
-          while ! docker exec job_board_postgres_db pg_isready -U Temz; do
-            sleep 2
-          done
-          echo "PostgreSQL is ready!"
-
-      - name: display web logs
-        run: docker logs job_board_platform-web-1
-
-      - name: Run Migrations
-        run: docker compose exec -T job_board_platform-web-1 python manage.py migrate
-
-      - name: Collect Static Files
-        run: docker compose exec -T job_board_platform-web-1 python manage.py collectstatic --noinput
+      - name: Show logs for debugging
+        run: docker compose logs job_board_platform-web-1
 
       - name: Check Docker container status
         run: docker ps -a
@@ -53,7 +45,8 @@ jobs:
         run: docker compose logs job_board_platform-web-1
 
       - name: Run Tests inside the container
-        run: docker compose exec -T job_board_platform-web-1 pytest --disable-warnings
+        run: |
+          docker compose exec -T job_board_platform-web-1 pytest --disable-warnings
 
       - name: Stop and clean up Docker containers
         run: docker compose down
