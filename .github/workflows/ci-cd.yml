@@ -23,6 +23,18 @@ jobs:
       - name: Build and start services using docker-compose
         run: docker compose up -d --build
 
+      - name: Wait for services to be ready
+        run: |
+            echo "Waiting for web service to start..."
+            sleep 20
+
+      - name: Check Docker container status
+        run: |
+            docker ps -a
+            
+      - name: Show logs for debugging
+        run: docker compose logs web
+
       - name: Run Tests inside the container
         run: |
           docker compose exec -T web pytest --disable-warnings
