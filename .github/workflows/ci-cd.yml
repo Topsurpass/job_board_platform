@@ -36,17 +36,14 @@ jobs:
           sleep 20
 
       - name: Show logs for debugging
-        run: docker compose logs job_board_platform-web-1
+        run: docker logs job_board_platform-web-1
 
       - name: Check Docker container status
         run: docker ps -a
 
-      - name: Show logs for debugging
-        run: docker compose logs job_board_platform-web-1
-
       - name: Run Tests inside the container
         run: |
-          docker compose exec -T job_board_platform-web-1 pytest --disable-warnings
+          docker exec -T job_board_platform-web-1 pytest --disable-warnings
 
       - name: Stop and clean up Docker containers
         run: docker compose down
