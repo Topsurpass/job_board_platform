@@ -6,7 +6,6 @@ from applications.models import Application
 from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
 
-pytestmark = pytest.mark.django_db
 
 User = get_user_model()
 
