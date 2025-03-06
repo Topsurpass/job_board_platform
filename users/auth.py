@@ -203,7 +203,7 @@ class UserCreateView(generics.CreateAPIView):
     permission_classes = [CanCreateUserOrEmployer]
     
     def perform_create(self, serializer):
-        user = serializer.save()
+        user = serializer.save(is_active=True)
         if user.role == 'admin':
             user.is_staff = True
             user.is_superuser = True
@@ -224,11 +224,13 @@ class UserCreateView(generics.CreateAPIView):
         responses={201: "Account created successfully. A welcome email has been sent."},
     )
     def post(self, request, *args, **kwargs):
-        super().post(request, *args, **kwargs)
-        return Response(
-            {"message": "Account created successfully. A welcome email has been sent."},
-            status=status.HTTP_201_CREATED,
-        )
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 201:
+            return Response(
+                {"message": "Account created successfully. A welcome email has been sent."},
+                status=status.HTTP_201_CREATED,
+            )
+        return response
     
 
 class LogoutView(APIView):

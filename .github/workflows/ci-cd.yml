@@ -1,0 +1,69 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout develop branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create .env file
+        run: |
+          echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> .env
+          echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env
+          echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
+          echo "POSTGRES_HOST=${{ secrets.POSTGRES_HOST }}" >> .env
+          echo "POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}" >> .env
+          echo "CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}" >> .env
+          echo "ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}" >> .env
+          echo "DEFAULT_FROM_EMAIL=${{ secrets.DEFAULT_FROM_EMAIL }}" >> .env
+          echo "EMAIL_HOST_PASSWORD=${{ secrets.EMAIL_HOST_PASSWORD }}" >> .env
+          echo "EMAIL_HOST_USER=${{ secrets.EMAIL_HOST_USER }}" >> .env
+          echo "SUPPORT_EMAIL=${{ secrets.SUPPORT_EMAIL }}" >> .env
+          
+      - name: Build and start services using docker-compose
+        run: docker compose up -d --build
+
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for web service to start..."
+          sleep 20
+
+      - name: Show logs for debugging
+        run: docker logs job_board_platform-web-1
+
+      - name: Check Docker container status
+        run: docker ps -a
+
+      - name: Run Tests inside the container
+        run: |
+          docker exec --tty=false job_board_platform-web-1 pytest --disable-warnings
+
+      - name: Stop and clean up Docker containers
+        run: docker compose down
+
+      - name: Checkout main branch
+        run: |
+          git fetch origin main
+          git checkout main
+
+      - name: Configure Git user
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
+      - name: Merge develop into main and push
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          git checkout main
+          git merge --no-ff develop -m "Auto-merged develop into main after successful tests"
+          git push https://x-access-token:${GH_TOKEN}@github.com/Topsurpass/job_board_platform.git main
