@@ -14,6 +14,12 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ('id', 'name', 'industry')
+        
+class CategoryIndustrySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ('id', 'name')
+
 
 class JobSerializer(serializers.ModelSerializer):
     no_of_applicants = serializers.SerializerMethodField()
@@ -25,9 +31,9 @@ class JobSerializer(serializers.ModelSerializer):
             'industry': {'required': True},
             'category': {'required': True},
             'posted_by': {'read_only': True},
-            'responsibilities': {'required': False},
-            'required_skills': {'required': False},
-            'type': {'required': False},
+            'responsibilities': {'required': True},
+            'required_skills': {'required': True},
+            'type': {'required': True},
             'picture': {'required': False, 'allow_null': True},
         }
 

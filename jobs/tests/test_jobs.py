@@ -51,6 +51,20 @@ def admin(db):
         role="admin",
         phone="1234567890"
     )
+    
+@pytest.fixture
+def admin2(db):
+    """Create test admin"""
+    return User.objects.create_user(
+        email="admin2@example.com",
+        password="securepassword",
+        first_name="Admin2",
+        last_name="Doe2",
+        is_staff="True",
+        is_superuser="True",
+        role="admin",
+        phone="1234567890"
+    )
 
 @pytest.fixture
 def industry(user):
@@ -186,6 +200,8 @@ class TestJobViewSet:
             "industry": industry.id,
             "category": category.id,
             "location": "Remote",
+            "responsibilities": "Just come",
+            "required_skills": "python",
             "company": "NIBBS",
             "type": ["full-time"],
             "description": "Great job opportunity",
@@ -254,3 +270,54 @@ class TestJobViewSet:
 
         assert response.status_code == status.HTTP_200_OK
         assert len(response.json()["results"]["applicants"]) == 1
+
+    def test_total_jobs(self, auth_client_admin, admin, industry, category):
+        """Test if an employer gets the correct total number of their posted jobs."""
+        Job.objects.create(title="Backend Engineer", industry=industry, category=category, location="NY", type=["full-time"],  posted_by=admin)
+        Job.objects.create(title="Frontend Engineer", industry=industry, category=category, location="CA", type=["full-time"],  posted_by=admin)
+        url = reverse("job-list") + "total-jobs/"
+        
+        response = auth_client_admin.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["total_jobs"] == 2
+        
+    def test_user_cannot_access_total_jobs(self, auth_client_user, admin, industry, category):
+        """Test user cannot gets the total number of posted jobs as they cant post jobs."""
+        Job.objects.create(title="Backend Engineer", industry=industry, category=category, location="NY", type=["full-time"],  posted_by=admin)
+        Job.objects.create(title="Frontend Engineer", industry=industry, category=category, location="CA", type=["full-time"],  posted_by=admin)
+        url = reverse("job-list") + "total-jobs/"
+        
+        response = auth_client_user.get(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        
+    def test_total_jobs_unauthenticated(self, api_client):
+        """Test user cannot gets the total number of posted jobs as they cant post jobs."""
+        url = reverse("job-list") + "total-jobs/"
+        
+        response = api_client.get(url)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        
+    def test_total_applicants(self, auth_client_admin, admin, user, industry, category):
+        """Test if an employer/admin gets the correct total number of applicants on all their posted jobs."""    
+        job1 = Job.objects.create(title="Data Scientist", industry=industry, category=category, location="Remote", type=["full-time"], posted_by=admin)
+        job2 = Job.objects.create(title="Backend Engineer", industry=industry, category=category, location="NY", type=["full-time"],  posted_by=admin)
+        job3 = Job.objects.create(title="Frontend Engineer", industry=industry, category=category, location="CA", type=["full-time"],  posted_by=admin)
+        Application.objects.create(job=job1, applicant=user)
+        Application.objects.create(job=job2, applicant=user)
+        Application.objects.create(job=job3, applicant=user)
+        
+        url = reverse("job-list") + "total-applicants/"
+        
+        response = auth_client_admin.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["all_applicants"] == 3
+        
+    def test_total_applicants_unauthenticated(self, api_client):
+        """Test user cannot gets the total number of applicants as they cant post jobs."""
+        url = reverse("job-list") + "total-applicants/"
+        
+        response = api_client.get(url)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        
