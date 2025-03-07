@@ -81,7 +81,7 @@ class IsAdminAndEmployer(permissions.BasePermission):
         if request.user.is_superuser:
             return True
         
-        return getattr(request.user, "role", None) in ["admi", "employer"]
+        return getattr(request.user, "role", None) in ["admin", "employer"]
         
                 
 class IsOnlyAdmin(permissions.BasePermission):

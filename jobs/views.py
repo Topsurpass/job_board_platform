@@ -259,7 +259,7 @@ class IndustryViewSet(viewsets.ModelViewSet):
             ),
         )}
     )
-    @action(detail=False, methods=["get"], url_path="categories-by-industry", permission_classes=[ReadOnlyAdminModify])
+    @action(detail=False, methods=["get"], url_path="categories-by-industry", permission_classes=[IsOnlyAdmin])
     def get_categories_by_industry(self, request):
         """Get all categories created by the current admin and group them by industry."""
         user = request.user 
@@ -280,6 +280,58 @@ class IndustryViewSet(viewsets.ModelViewSet):
         paginated_result = paginator.paginate_queryset(grouped_data, request)
 
         return paginator.get_paginated_response(paginated_result)
+    
+    
+    @swagger_auto_schema(
+        operation_summary="Get industries an employer has posted jobs under",
+        operation_description="Returns the total count and a paginated list of industries an employer has posted jobs under.",
+        manual_parameters=[
+            openapi.Parameter(
+                name="page",
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                description="Page number for pagination"
+            ),
+            openapi.Parameter(
+                name="page_size",
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                description="Number of items per page"
+            ),
+        ],
+        responses={
+            200: openapi.Response(
+                description="A paginated list of industries the employer has used in job postings.",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "count": openapi.Schema(type=openapi.TYPE_INTEGER, description="Total number of industries used"),
+                        "next": openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_URI, nullable=True, description="URL of the next page (if any)"),
+                        "previous": openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_URI, nullable=True, description="URL of the previous page (if any)"),
+                        "results": openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            items=openapi.Schema(type=openapi.TYPE_OBJECT, properties={
+                                "id": openapi.Schema(type=openapi.TYPE_INTEGER, description="Industry ID"),
+                                "name": openapi.Schema(type=openapi.TYPE_STRING, description="Industry name")
+                            })
+                        )
+                    }
+                )
+            ),
+            401: openapi.Response(description="Unauthorized - User must be authenticated."),
+            403: openapi.Response(description="Forbidden - Only employers and admins can access."),
+        }
+    )
+    @action(detail=False, methods=["get"], url_path="industries-used", permission_classes=[IsAdminAndEmployer])
+    def industries_used(self, request):
+        """Get the total count and paginated list of industries an employer has posted jobs under."""
+        employer = request.user
+
+        industries = Industry.objects.filter(jobs__posted_by=employer).distinct()
+        paginator = CustomPagination()
+        paginated_industries = paginator.paginate_queryset(industries, request)
+        serialized_data = IndustrySerializer(paginated_industries, many=True).data
+        return paginator.get_paginated_response(serialized_data)
 
 class CategoryViewSet(viewsets.ModelViewSet):
     """API for creating and modifying categories"""
@@ -687,7 +739,7 @@ class JobViewSet(viewsets.ModelViewSet):
         return Response({"total_jobs": total_jobs})
 
     @swagger_auto_schema(
-        operation_summary="Get total applicants for all jobs posted by the employer",
+        operation_summary="Get total applicants for all jobs posted by the employer/admin",
         operation_description="Returns the total number of applicants who have applied to jobs posted by the signed-in employer.",
         responses={200: openapi.Schema(
             type=openapi.TYPE_OBJECT,

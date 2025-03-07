@@ -10,7 +10,6 @@ class IndustrySerializer(serializers.ModelSerializer):
         fields = ('id', 'name')
 
 class CategorySerializer(serializers.ModelSerializer):
-    industry = IndustrySerializer()
     class Meta:
         model = Category
         fields = ('id', 'name', 'industry')
