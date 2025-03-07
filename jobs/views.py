@@ -2,8 +2,13 @@ from rest_framework import viewsets, filters, status
 from .models import Job, Industry, Category
 from applications.models import Application
 from applications.serializers import ApplicationSerializer, AppJobSerializer
-from .serializers import IndustrySerializer, JobSerializer, CategorySerializer
-from .permissions import ReadOnlyModifyByAdminEmployer, ReadOnlyAdminModify
+from .serializers import IndustrySerializer, JobSerializer, CategorySerializer, CategoryIndustrySerializer
+from .permissions import (
+    ReadOnlyModifyByAdminEmployer,
+    ReadOnlyAdminModify,
+    IsAdminAndEmployer,
+    IsOnlyAdmin
+)
 from .pagination import CustomPagination
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -176,6 +181,105 @@ class IndustryViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.error(f"Error: {e}")
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @swagger_auto_schema(
+        operation_summary="Get all industries created by an admin",
+        operation_description="Retrieves a paginated list of industries created by the signed-in admin.",
+        responses={200: openapi.Response(
+            description="Paginated response of industries",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "count": openapi.Schema(type=openapi.TYPE_INTEGER, example=10),
+                    "next": openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_URI, example="http://api.example.com/industries/?page=2"),
+                    "previous": openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_URI, example=None),
+                    "results": openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                "id": openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_UUID, example="123e4567-e89b-12d3-a456-426614174000"),
+                                "name": openapi.Schema(type=openapi.TYPE_STRING, example="Technology"),
+                            },
+                        ),
+                    ),
+                }
+            ),
+        )}
+    ) 
+    @action(detail=False, methods=["get"], url_path="all-industries", permission_classes=[IsOnlyAdmin])
+    def get_all_industries(self, request, pk=None):
+        """Get all industries created by an admin"""
+        
+        user = request.user
+        all_industries = Industry.objects.filter(created_by=user).order_by('-created_at')
+        paginator = CustomPagination()
+        result_page = paginator.paginate_queryset(all_industries, request)
+        serialized_data = IndustrySerializer(result_page, many=True).data
+        return paginator.get_paginated_response(serialized_data)
+    
+    
+    @swagger_auto_schema(
+        operation_summary="Get all categories grouped by industry",
+        operation_description="Retrieves all categories created by the current admin, grouped under their respective industries.",
+        responses={200: openapi.Response(
+            description="A list of industries with their associated categories",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "count": openapi.Schema(type=openapi.TYPE_INTEGER, example=2),
+                    "next": openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_URI, example=None),
+                    "previous": openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_URI, example=None),
+                    "results": openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                "industry": openapi.Schema(
+                                    type=openapi.TYPE_OBJECT,
+                                    properties={
+                                        "id": openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_UUID, example="123e4567-e89b-12d3-a456-426614174000"),
+                                        "name": openapi.Schema(type=openapi.TYPE_STRING, example="Technology"),
+                                    },
+                                ),
+                                "categories": openapi.Schema(
+                                    type=openapi.TYPE_ARRAY,
+                                    items=openapi.Schema(
+                                        type=openapi.TYPE_OBJECT,
+                                        properties={
+                                            "id": openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_UUID, example="223e4567-e89b-12d3-a456-426614174000"),
+                                            "name": openapi.Schema(type=openapi.TYPE_STRING, example="Software Development"),
+                                        }
+                                    ),
+                                ),
+                            },
+                        ),
+                    ),
+                }
+            ),
+        )}
+    )
+    @action(detail=False, methods=["get"], url_path="categories-by-industry", permission_classes=[ReadOnlyAdminModify])
+    def get_categories_by_industry(self, request):
+        """Get all categories created by the current admin and group them by industry."""
+        user = request.user 
+        categories = Category.objects.filter(created_by=user).select_related("industry")
+
+        industry_categories = defaultdict(list)
+        for category in categories:
+            industry_categories[category.industry].append(category)
+
+        grouped_data = []
+        for industry, category_list in industry_categories.items():
+            grouped_data.append({
+                "industry": IndustrySerializer(industry).data,
+                "categories": CategoryIndustrySerializer(category_list, many=True).data
+            })
+
+        paginator = CustomPagination()
+        paginated_result = paginator.paginate_queryset(grouped_data, request)
+
+        return paginator.get_paginated_response(paginated_result)
 
 class CategoryViewSet(viewsets.ModelViewSet):
     """API for creating and modifying categories"""
@@ -531,14 +635,26 @@ class JobViewSet(viewsets.ModelViewSet):
         responses={
             200: openapi.Response(
                 description="Paginated list of distinct job locations",
-                examples={
-                    "application/json": {
-                        "count": 2,
-                        "next": "http://localhost:8000/api/job/locations/?page=2",
-                        "previous": None,
-                        "results": ["Lagos", "Abuja", "Port Harcourt", "Kano", "Ibadan"],
-                    }
-                },
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "count": openapi.Schema(type=openapi.TYPE_INTEGER, example=2),
+                        "next": openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            format=openapi.FORMAT_URI,
+                            example="http://localhost:8000/api/job/locations/?page=2"
+                        ),
+                        "previous": openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            format=openapi.FORMAT_URI,
+                            example=None
+                        ),
+                        "results": openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            items=openapi.Schema(type=openapi.TYPE_STRING, example="Lagos"),
+                        ),
+                    },
+                ),
             )
         },
     )
@@ -552,4 +668,41 @@ class JobViewSet(viewsets.ModelViewSet):
         paginator = CustomPagination()
         result_page = paginator.paginate_queryset(locations, request)
         return paginator.get_paginated_response(result_page)
+    
+    @swagger_auto_schema(
+        operation_summary="Get total number of jobs posted by the employer/admin",
+        operation_description="Returns the total number of jobs posted by the currently signed-in employer/admin.",
+        responses={200: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "total_jobs": openapi.Schema(type=openapi.TYPE_INTEGER, example=15)
+            }
+        )}
+    )
+    @action(detail=False, methods=["get"], url_path="total-jobs", permission_classes=[IsAdminAndEmployer])
+    def total_jobs(self, request):
+        """Returns the total number of jobs posted by the signed-in employer/admin"""
+        user = request.user
+        total_jobs = Job.objects.filter(posted_by=user).count()
+        return Response({"total_jobs": total_jobs})
 
+    @swagger_auto_schema(
+        operation_summary="Get total applicants for all jobs posted by the employer",
+        operation_description="Returns the total number of applicants who have applied to jobs posted by the signed-in employer.",
+        responses={200: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "all_applicants": openapi.Schema(type=openapi.TYPE_INTEGER, example=50)
+            }
+        )}
+    )
+    @action(detail=False, methods=["get"], url_path="total-applicants", permission_classes=[IsAdminAndEmployer])
+    def total_applicants(self, request):
+        """Returns the total number of applicants for all jobs posted by the signed-in employer."""
+        user = request.user
+        
+        all_employer_jobs = Job.objects.filter(posted_by=user)
+        
+        total_applicants = Application.objects.filter(job__in=all_employer_jobs).count()
+        
+        return Response({"all_applicants": total_applicants})
