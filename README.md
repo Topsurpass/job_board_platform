@@ -88,7 +88,7 @@ This project provides a **robust and scalable backend** for job board platforms,
 
 ## Deployment
 
-- **Deployment**: The API and Swagger documentation will be hosted on pythonanywhere.
+The API and Swagger documentation will be hosted on pythonanywhere.
 ---
 
 This backend system is designed for **scalability, security, and efficiency**, ensuring seamless integration with frontend applications. 🚀
@@ -160,11 +160,11 @@ cd job_board_platform
 The project requires a .env file for managing environment variables.
 
 Create a new .env file in the project root:
-
 ```bash
 touch .env
-
-# Add the following configurations (modify as needed):
+```
+Add the following configurations (modify as needed):
+```bash
 POSTGRES_DB='job_board'
 POSTGRES_USER=
 POSTGRES_PASSWORD=
