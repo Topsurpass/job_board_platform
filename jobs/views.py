@@ -1,8 +1,10 @@
+import traceback
 from rest_framework import viewsets, filters, status
 from .models import Job, Industry, Category
+from django.db.models import Count
 from applications.models import Application
 from applications.serializers import ApplicationSerializer, AppJobSerializer
-from .serializers import IndustrySerializer, JobSerializer, CategorySerializer, CategoryIndustrySerializer
+from .serializers import IndustrySerializer, JobSerializer, CategorySerializer, CategoryIndustrySerializer, JobListSerializer
 from .permissions import (
     ReadOnlyModifyByAdminEmployer,
     ReadOnlyAdminModify,
@@ -123,18 +125,21 @@ class IndustryViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["get"], url_path="jobs")
     def get_industry_jobs(self, request, pk=None):
         """Get paginated jobs for a specific industry."""
-        try:
-            industry = self.get_object()
-            jobs = Job.objects.filter(industry=industry).order_by("-posted_at")
-            paginator = CustomPagination()
-            paginated_jobs = paginator.paginate_queryset(jobs, request)
-            serializer = JobSerializer(paginated_jobs, many=True)
-            return paginator.get_paginated_response(serializer.data)
-        except Industry.DoesNotExist:
-            return Response({"error": "Industry not found."}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            logger.error(f"Error: {e}")
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        industry = self.get_object()
+        
+        jobs = Job.objects.filter(industry=industry).select_related("posted_by", "category").order_by("-posted_at")
+        
+        if not jobs.exists():
+            return Response({"message": "No jobs found in this industry."}, status=status.HTTP_404_NOT_FOUND)
+
+        paginator = CustomPagination()
+        paginated_jobs = paginator.paginate_queryset(jobs, request)
+        
+        serializer = JobSerializer(paginated_jobs, many=True)
+        
+        return paginator.get_paginated_response(serializer.data)
+
     
     @swagger_auto_schema(
         method='get',
@@ -169,18 +174,21 @@ class IndustryViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["get"], url_path="categories")
     def get_industry_categories(self, request, pk=None):
         """Retrieve all categories under a specific industry."""
-        try:
-            industry = self.get_object()
-            categories = Category.objects.filter(industry=industry).order_by('-created_at')
-            paginator = CustomPagination()
-            paginated_category = paginator.paginate_queryset(categories, request)
-            serializer = CategorySerializer(paginated_category, many=True)
-            return paginator.get_paginated_response(serializer.data)
-        except Industry.DoesNotExist:
-            return Response({"error": "Industry not found."}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            logger.error(f"Error: {e}")
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        industry = self.get_object()
+        
+        categories = Category.objects.filter(industry=industry).select_related("industry").order_by("-created_at")
+        
+        if not categories.exists():
+            return Response({"message": "No categories found for this industry."}, status=status.HTTP_200_OK)
+
+        paginator = CustomPagination()
+        paginated_categories = paginator.paginate_queryset(categories, request)
+        
+        serializer = CategorySerializer(paginated_categories, many=True)
+        
+        return paginator.get_paginated_response(serializer.data)
+    
     
     @swagger_auto_schema(
         operation_summary="Get all industries created by an admin",
@@ -213,6 +221,8 @@ class IndustryViewSet(viewsets.ModelViewSet):
         
         user = request.user
         all_industries = Industry.objects.filter(created_by=user).order_by('-created_at')
+        if not all_industries.exists():
+            return Response({"message": "No industries available."}, status=status.HTTP_200_OK)
         paginator = CustomPagination()
         result_page = paginator.paginate_queryset(all_industries, request)
         serialized_data = IndustrySerializer(result_page, many=True).data
@@ -326,12 +336,20 @@ class IndustryViewSet(viewsets.ModelViewSet):
     def industries_used(self, request):
         """Get the total count and paginated list of industries an employer has posted jobs under."""
         employer = request.user
+        cache_key = f"industries_used_{employer.id}"
+        cached_data = cache.get(cache_key)
+
+        if cached_data:
+            return Response(cached_data)
 
         industries = Industry.objects.filter(jobs__posted_by=employer).distinct()
         paginator = CustomPagination()
         paginated_industries = paginator.paginate_queryset(industries, request)
         serialized_data = IndustrySerializer(paginated_industries, many=True).data
-        return paginator.get_paginated_response(serialized_data)
+        response =  paginator.get_paginated_response(serialized_data)
+        cache.set(cache_key, response.data, timeout=120)
+
+        return response
 
 class CategoryViewSet(viewsets.ModelViewSet):
     """API for creating and modifying categories"""
@@ -414,16 +432,17 @@ class CategoryViewSet(viewsets.ModelViewSet):
         """Retrieve all jobs under a specific industry category."""
         try:
             category = self.get_object()
-            jobs = Job.objects.filter(category=category).order_by('-posted_at')
+            jobs = Job.objects.filter(category=category).select_related("category").order_by('-posted_at')
+
             paginator = CustomPagination()
-            paginated_jobs = paginator.paginate_queryset(jobs, request)
+            paginated_jobs = paginator.paginate_queryset(jobs, request, view=self)
             serializer = JobSerializer(paginated_jobs, many=True)
+
             return paginator.get_paginated_response(serializer.data)
-        except Http404:
-            return Response({"error": "No Category matches the given query."}, status=status.HTTP_404_NOT_FOUND)
+
         except Exception as e:
-            logger.error(f"Error: {e}")
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error(f"Unexpected error in get_category_jobs: {str(e)}\n{traceback.format_exc()}")
+            return Response({"error": "An unexpected error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class JobViewSet(viewsets.ModelViewSet):
     """API endpoint for jobs with optimized categorized-jobs endpoint."""
@@ -440,51 +459,56 @@ class JobViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Assign the authenticated user as the poster and clear cache."""
         serializer.save(posted_by=self.request.user)
-        cache.delete("job_list")
+        self.clear_cache()
 
     def perform_update(self, serializer):
         """Update a job and clear related caches."""
-        job = serializer.save()
-        cache.delete("job_list")
-        cache.delete(f"job_{job.id}")
+        instance = serializer.save()
+        self.clear_cache()
+        cache.delete(f"job_{instance.id}")
 
     def perform_destroy(self, instance):
         """Delete a job and clear related caches."""
-        cache.delete("job_list")
-        cache.delete(f"job_{instance.id}")
+        self.clear_cache()
         instance.delete()
 
     @swagger_auto_schema(
         operation_summary="List Jobs",
         operation_description=(
-        "Fetch a paginated list of jobs. All users have access."
-        "- User can search jobs by their name. \n\n"
-        "- User can set size of data retrieved using page_size and user can navigate to any page using page. \n\n"
-        "- **N.B**: There is 2 minutes cache on data retrieved.\n\n"
-        "- Both authorized and unauthorized users can access this endpoint."
-    ),
+            "Fetch a paginated list of jobs. All users have access."
+            "- User can search jobs by their name. \n\n"
+            "- User can set size of data retrieved using page_size and user can navigate to any page using page. \n\n"
+            "- **N.B**: There is 2 minutes cache on data retrieved.\n\n"
+            "- Both authorized and unauthorized users can access this endpoint."
+        ),
         responses={200: JobSerializer(many=True)}
     )
     def list(self, request, *args, **kwargs):
         """Cache the job listing response while applying search and pagination."""
-        cached_jobs = cache.get("job_list")
 
-        if cached_jobs is None or "search" in request.query_params or "page_size" in request.query_params:
-            queryset = self.filter_queryset(self.get_queryset()) 
-            page = self.paginate_queryset(queryset)
-            if page is not None:
-                serializer = self.get_serializer(page, many=True)
-                response = self.get_paginated_response(serializer.data)
-                cache.set("job_list", response.data, timeout=60 * 2)
-                return response
-            
+        cache_key = f"job_list_{request.query_params.get('search', '')}_{request.query_params.get('page', '')}_{request.query_params.get('page_size', '')}"
+        cached_jobs = cache.get(cache_key)
+
+        if cached_jobs:
+            return Response(cached_jobs)
+
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            response = self.get_paginated_response(serializer.data)
+        else:
             serializer = self.get_serializer(queryset, many=True)
             response = Response(serializer.data)
-            cache.set("job_list", response.data, timeout=60 * 2)
-            return response
-        
-        return Response(cached_jobs)
 
+        cache.set(cache_key, response.data, timeout=120)  
+        return response
+    
+    def clear_cache(self):
+        """Clear all job-related cache keys."""
+        cache.delete_pattern("job_list_*")
+    
     @swagger_auto_schema(
         operation_summary="Create new Job",
         operation_description="API that allows only admins and employer create new job.",
@@ -510,7 +534,7 @@ class JobViewSet(viewsets.ModelViewSet):
         job_data = cache.get(cache_key)
         if job_data is None:
             response = super().retrieve(request, *args, **kwargs)
-            cache.set(cache_key, response.data, timeout=60 * 10)
+            cache.set(cache_key, response.data, timeout=60 * 2)
             return response
         
         return Response(job_data)
@@ -610,17 +634,21 @@ class JobViewSet(viewsets.ModelViewSet):
         if category not in ["location", "type", "industry"]:
             return Response({"error": "Invalid category. Use location, type, or industry."}, status=status.HTTP_400_BAD_REQUEST)
 
-        jobs = Job.objects.annotate(industry_name=F("industry__name"))
+        jobs = Job.objects.annotate(industry_name=F("industry__name"), category_name=F("category__name"), no_of_applicants=Count("applications"))
         if search_query:
             jobs = jobs.filter(
                 Q(title__icontains=search_query) |
                 Q(industry__name__icontains=search_query) |
                 Q(location__icontains=search_query) |
-                Q(type__contains=[search_query])
+                Q(type__icontains=[search_query])
             )
 
         category_field = "industry_name" if category == "industry" else category
-        jobs = jobs.values("id", "title", "industry_name", "location", "type", "wage").order_by("-posted_at")
+        jobs = jobs.values(
+            "id", "title", "industry_name", "category_name",
+            "location", "required_skills", "type", "wage",
+            "description", "no_of_applicants", "is_active"
+            ).order_by("-posted_at")
         job_groups = defaultdict(list)
         for job in jobs:
             if category == "type":
@@ -714,13 +742,15 @@ class JobViewSet(viewsets.ModelViewSet):
     def locations(self, request):
         """Get paginated distinct job locations"""
         search_query = request.GET.get("search", "").strip()
-        locations = Job.objects.exclude(location="").values_list("location", flat=True).distinct()
-        if search_query:
-            locations = [loc for loc in locations if search_query.lower() in loc.lower()]
+        def generate_locations():
+            for location in Job.objects.exclude(location="").values_list("location", flat=True).distinct():
+                if not search_query or search_query.lower() in location.lower():
+                    yield location
+
         paginator = CustomPagination()
-        result_page = paginator.paginate_queryset(locations, request)
+        result_page = paginator.paginate_queryset(list(generate_locations()), request)
         return paginator.get_paginated_response(result_page)
-    
+        
     @swagger_auto_schema(
         operation_summary="Get total number of jobs posted by the employer/admin",
         operation_description="Returns the total number of jobs posted by the currently signed-in employer/admin.",
@@ -737,6 +767,29 @@ class JobViewSet(viewsets.ModelViewSet):
         user = request.user
         total_jobs = Job.objects.filter(posted_by=user).count()
         return Response({"total_jobs": total_jobs})
+    
+    @swagger_auto_schema(
+        operation_summary="List all jobs posted by signed-in employer/admin",
+        operation_description="Returns the paginated list of jobs posted by the currently signed-in employer/admin.",
+        responses={200: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "total_jobs": openapi.Schema(type=openapi.TYPE_INTEGER, example=15)
+            }
+        )}
+    )
+    @action(detail=False, methods=["get"], url_path="list-total-jobs", permission_classes=[IsAdminAndEmployer])
+    def list_total_jobs(self, request):
+        """Returns the list of total number of jobs posted by the signed-in employer/admin"""
+        user = request.user
+        def generate_jobs():
+            for job in Job.objects.filter(posted_by=user):
+                yield job
+
+        paginator = CustomPagination()
+        result_page = paginator.paginate_queryset(list(generate_jobs()), request)
+        serializer = JobListSerializer(result_page, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
     @swagger_auto_schema(
         operation_summary="Get total applicants for all jobs posted by the employer/admin",
@@ -758,3 +811,76 @@ class JobViewSet(viewsets.ModelViewSet):
         total_applicants = Application.objects.filter(job__in=all_employer_jobs).count()
         
         return Response({"all_applicants": total_applicants})
+        
+    @swagger_auto_schema(
+        method="get",
+        operation_summary="Get total applicants for jobs posted by the employer.",
+        operation_description=(
+            "This endpoint returns a list of job applications categorized by jobs posted by the signed-in employer.\n\n"
+            "**Response Structure:**\n"
+            "- `total_applications`: Total number of applicants across all jobs.\n"
+            "- `all_applications`: List of jobs with the number of applicants and detailed application data.\n\n"
+        ),
+        responses={
+            200: openapi.Response(
+                description="List of jobs with categorized applications.",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "total_applications": openapi.Schema(type=openapi.TYPE_INTEGER, description="Total number of applicants across all jobs."),
+                        "all_applications": openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            items=openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    "job_id": openapi.Schema(type=openapi.TYPE_INTEGER, description="ID of the job."),
+                                    "job_title": openapi.Schema(type=openapi.TYPE_STRING, description="Title of the job."),
+                                    "no_of_applicants": openapi.Schema(type=openapi.TYPE_INTEGER, description="Number of applicants for the job."),
+                                    "applications": openapi.Schema(
+                                        type=openapi.TYPE_ARRAY,
+                                        items=openapi.Schema(
+                                            type=openapi.TYPE_OBJECT,
+                                            properties={
+                                                "id": openapi.Schema(type=openapi.TYPE_INTEGER, description="Application ID."),
+                                                "applicant_name": openapi.Schema(type=openapi.TYPE_STRING, description="Name of the applicant."),
+                                                "status": openapi.Schema(type=openapi.TYPE_STRING, description="Status of the application."),
+                                                "resume_url": openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_URI, description="URL of the applicant's resume.")
+                                            }
+                                        )
+                                    )
+                                }
+                            )
+                        )
+                    }
+                )
+            ),
+            403: openapi.Response(
+                description="Forbidden. Only employers and admins can access this endpoint."
+            ),
+        }
+    )
+    @action(detail=False, methods=["get"], url_path="list-total-applicants", permission_classes=[IsAdminAndEmployer])
+    def list_total_applicants(self, request):
+        """Returns categorized applications for jobs posted by the signed-in employer, using yield for better memory efficiency."""
+        user = request.user
+
+        def generate_categorized_applications():
+            for job in Job.objects.filter(posted_by=user):
+                job_applications = Application.objects.filter(job=job)
+                if job_applications.exists():
+                    yield {
+                        "job_id": job.id,
+                        "job_title": job.title,
+                        "no_of_applicants": job_applications.count(),
+                        "applications": ApplicationSerializer(job_applications, many=True).data
+                    }
+
+        paginator = CustomPagination()
+        paginated_result = paginator.paginate_queryset(list(generate_categorized_applications()), request)
+
+        response_data = {
+            "total_applications": sum(job["no_of_applicants"] for job in paginated_result),
+            "all_applications": paginated_result
+        }
+
+        return paginator.get_paginated_response(response_data)

@@ -19,6 +19,16 @@ class CategoryIndustrySerializer(serializers.ModelSerializer):
         model = Category
         fields = ('id', 'name')
 
+class JobListSerializer(serializers.ModelSerializer):
+    industry = IndustrySerializer(read_only=True)
+    category = CategoryIndustrySerializer(read_only=True)
+    no_of_applicants = serializers.SerializerMethodField()
+    class Meta:
+        model = Job
+        fields = "__all__"
+        
+    def get_no_of_applicants(self, obj):
+        return Application.objects.filter(job=obj).count()
 
 class JobSerializer(serializers.ModelSerializer):
     no_of_applicants = serializers.SerializerMethodField()
