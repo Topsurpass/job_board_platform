@@ -147,7 +147,7 @@ Before proceeding, ensure you have the following installed on your machine:
 
 ---
 
-**Clone the Repository**
+### Clone the Repository
 If you haven’t already, clone the repository:
 
 ```bash
@@ -156,7 +156,7 @@ cd job_board_platform
 
 ```
 
-**Create .env file and supply variables**
+### Create .env file and supply variables
 The project requires a .env file for managing environment variables.
 
 Create a new .env file in the project root:
@@ -188,7 +188,7 @@ DEFAULT_FROM_EMAIL=
 SUPPORT_EMAIL=
 ```
 
-**Build and start the container**
+### Build and start the container
 Run the following command to build and start the containers:
 
 ```bash
@@ -207,7 +207,7 @@ Python3 manage.py createsuperuser
 
 ```
 
-**Access the API**
+### Access the API
 After setup, the API should be available at:
 - API Base URL: http://localhost:8000/api/
 - Admin Panel: http://localhost:8000/admin/
