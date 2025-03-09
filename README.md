@@ -88,7 +88,7 @@ This project provides a **robust and scalable backend** for job board platforms,
 
 ## Deployment
 
-- **Deployment**: The API and Swagger documentation will be hosted on pythonanywhere.
+The API and Swagger documentation will be hosted on pythonanywhere.
 ---
 
 This backend system is designed for **scalability, security, and efficiency**, ensuring seamless integration with frontend applications. 🚀
@@ -136,3 +136,84 @@ This backend system is designed for **scalability, security, and efficiency**, e
 | **Employer**     | ✅ Yes        | ✅ Allowed (Own Jobs) | ❌ Denied  | ❌ Denied  | ❌ Denied  |
 | **Regular User** | ✅ Yes        | ✅ Allowed (Own Apps) | ✅ Allowed  | ❌ Denied  | ❌ Denied  |
 | **Unauthenticated** | ❌ No      | ❌ Denied  | ❌ Denied    | ❌ Denied  | ❌ Denied  |
+
+
+## Installation
+
+### Prerequisites
+Before proceeding, ensure you have the following installed on your machine:
+- [Docker](https://docs.docker.com/get-docker/)
+- Git (optional, if cloning from a repository)
+
+---
+
+### Clone the Repository
+If you haven’t already, clone the repository:
+
+```bash
+git clone https://github.com/Topsurpass/job_board_platform
+cd job_board_platform
+
+```
+
+### Create .env file and supply variables
+The project requires a .env file for managing environment variables.
+
+Create a new .env file in the project root:
+```bash
+touch .env
+```
+Add the following configurations (modify as needed):
+```bash
+POSTGRES_DB='job_board'
+POSTGRES_USER=
+POSTGRES_PASSWORD=
+POSTGRES_HOST='job_board_postgres_db'
+POSTGRES_PORT='5432'
+CELERY_BROKER_URL="redis://redis:6379/0"
+CELERY_RESULT_BACKEND="redis://redis:6379/0"
+CORS_ALLOWED_ORIGINS=
+ALLOWED_HOSTS=
+DEBUG='True'
+SECRET_KEY=
+USE_POSTGRES='True'
+
+EMAIL_HOST_PASSWORD=
+EMAIL_HOST_USER=
+EMAIL_HOST='smtp.gmail.com'
+EMAIL_PORT='465'
+EMAIL_USE_TLS='False'
+EMAIL_USE_SSL='True'
+DEFAULT_FROM_EMAIL=
+SUPPORT_EMAIL=
+```
+
+### Build and start the container
+Run the following command to build and start the containers:
+
+```bash
+docker compose up --build
+```
+
+**Create suoeruser (for access to admin protected endpoint and admin dashboard)**
+If you need admin access, create a Django superuser by following below commands:
+
+```bash
+# Start a bash terminal to execute commands 
+docker exec -it job_board_platform-web bash
+
+# Create superuser and Follow the prompts to enter:
+Python3 manage.py createsuperuser
+
+```
+
+### Access the API
+After setup, the API should be available at:
+- API Base URL: http://localhost:8000/api/
+- Admin Panel: http://localhost:8000/admin/
+- Swagger API Docs: http://localhost:8000/api/docs/
+
+**Stop the Application**
+```bash
+docker compose down
+```
