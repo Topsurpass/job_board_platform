@@ -48,11 +48,16 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
     @swagger_auto_schema(
         operation_summary="Update a Job Application",
-        operation_description="Modify an existing job application. Only admins can update application status.",
+        operation_description="Modify an existing job application. Only admins employer who owns the job can update application status.",
         request_body=ApplicationSerializer,
         responses={200: ApplicationSerializer, 400: "Bad Request"}
     )
     def update(self, request, *args, **kwargs):
+        if set(request.data.keys()) != {"status"}:
+            return Response(
+                {"error": "You can only update the 'status' field of an application."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         return super().update(request, *args, **kwargs)
 
     @swagger_auto_schema(

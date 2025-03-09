@@ -39,7 +39,7 @@ class Job(models.Model):
     location = models.CharField(max_length=255, db_index=True)
     wage = models.IntegerField(null=True, blank=True)
 
-    JOB_TYPE_CHOICES = ['part-time', 'full-time', 'contract', 'internship']
+    JOB_TYPE_CHOICES = ['part-time', 'full-time', 'contract', 'internship', 'remote']
     
     type = models.JSONField(default=list) 
 
