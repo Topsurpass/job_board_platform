@@ -3,6 +3,7 @@ from .models import Job, Industry, Category
 from applications.models import Application
 import json
 from django.conf import settings
+from users.models import User
 
 
 
@@ -22,8 +23,9 @@ class CategoryIndustrySerializer(serializers.ModelSerializer):
         fields = ('id', 'name')
 
 class JobListSerializer(serializers.ModelSerializer):
-    industry = IndustrySerializer(read_only=True)
-    category = CategoryIndustrySerializer(read_only=True)
+    industry = serializers.CharField(source="industry.name", read_only=True)
+    category = serializers.CharField(source="category.name", read_only=True)
+    posted_by = serializers.CharField(source="posted_by.email", read_only=True)
     no_of_applicants = serializers.SerializerMethodField()
     class Meta:
         model = Job
