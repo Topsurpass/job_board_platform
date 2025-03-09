@@ -2,6 +2,8 @@ from rest_framework import serializers
 from .models import Job, Industry, Category
 from applications.models import Application
 import json
+from django.conf import settings
+
 
 
 class IndustrySerializer(serializers.ModelSerializer):
@@ -66,7 +68,7 @@ class JobSerializer(serializers.ModelSerializer):
         if not isinstance(job_type, list) or not all(isinstance(t, str) for t in job_type):
             raise serializers.ValidationError({"type": "Job type must be a list of strings."})
 
-        data["type"] = job_type  # Ensure it's always a list
+        data["type"] = job_type
 
         return data
 
@@ -81,5 +83,8 @@ class JobSerializer(serializers.ModelSerializer):
         data["type"] = data["type"] or []
         request = self.context.get('request')
         if instance.picture:
-            data["picture"] = request.build_absolute_uri(instance.picture.url) if request else instance.picture.url
+            if settings.DEBUG:
+                data["picture"] = request.build_absolute_uri(instance.picture.url) if request else instance.picture.url
+            else:
+                data["picture"] = instance.picture.url
         return data

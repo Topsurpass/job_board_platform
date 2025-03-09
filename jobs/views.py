@@ -1,5 +1,5 @@
 import traceback
-from rest_framework import viewsets, filters, status
+from rest_framework import viewsets, filters, serializers, status
 from .models import Job, Industry, Category
 from django.db.models import Count
 from applications.models import Application
@@ -21,7 +21,7 @@ from drf_yasg import openapi
 from collections import defaultdict
 from django.core.paginator import Paginator
 from django.db.models import F, Q
-from django.http import Http404
+from django.core.exceptions import ValidationError
 
 
 logger = logging.getLogger(__name__)
@@ -519,7 +519,14 @@ class JobViewSet(viewsets.ModelViewSet):
         }
     )
     def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
+        try:
+            return super().create(request, *args, **kwargs)
+        except ValidationError as e:
+            return Response(e.message_dict, status=status.HTTP_400_BAD_REQUEST)
+        except serializers.ValidationError as e:
+            return Response(e.message_dict, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @swagger_auto_schema(
         operation_summary="Retrieve a job",
