@@ -33,7 +33,6 @@ SECRET_KEY = env('SECRET_KEY', default='unsafe-default-secret-key')
 DEBUG = env.bool('DEBUG', default=True)
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "").split(" ")
-# ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
 CORS_ALLOW_METHODS = [
     "GET",
@@ -211,12 +210,6 @@ SIMPLE_JWT = {
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
     'USER_ID_FIELD': 'id',
 }
-
-# Celery settings (local machine)
-# CELERY_BROKER_URL = "redis://localhost:6379/0"
-# CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
-#CELERY_BROKER_URL = env('CELERY_BROKER_URL', default="redis://localhost:6379")
-#CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default="redis://localhost:6379")
 
 # Celery settings (docker)
 CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='redis://redis:6379/0')
