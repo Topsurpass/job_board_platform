@@ -48,7 +48,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
     @swagger_auto_schema(
         operation_summary="Update a Job Application",
-        operation_description="Modify an existing job application. Only admins can update application status.",
+        operation_description="Modify an existing job application. Only admins employer who owns the job can update application status.",
         request_body=ApplicationSerializer,
         responses={200: ApplicationSerializer, 400: "Bad Request"}
     )
