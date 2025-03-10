@@ -133,7 +133,7 @@ This backend system is designed for **scalability, security, and efficiency**, e
 | User Type         | Authenticated? | GET (View) | POST (Create) | PUT/PATCH (Update) | DELETE |
 |------------------|--------------|------------|--------------|--------------------|--------|
 | **Admin**        | ✅ Yes        | ✅ Allowed | ✅ Allowed   | ✅ Allowed         | ✅ Allowed |
-| **Employer**     | ✅ Yes        | ✅ Allowed (Own Jobs) | ❌ Denied  | ❌ Denied  | ❌ Denied  |
+| **Employer**     | ✅ Yes        | ✅ Allowed (Own Jobs) | ❌ Denied  | ✅ Allowed (status field only)  | ❌ Denied  |
 | **Regular User** | ✅ Yes        | ✅ Allowed (Own Apps) | ✅ Allowed  | ❌ Denied  | ❌ Denied  |
 | **Unauthenticated** | ❌ No      | ❌ Denied  | ❌ Denied    | ❌ Denied  | ❌ Denied  |
 
