@@ -66,5 +66,9 @@ class JobSerializer(serializers.ModelSerializer):
         data["type"] = data["type"] or []
         request = self.context.get('request')
         if instance.picture:
-            data["picture"] = request.build_absolute_uri(instance.picture.url) if request else instance.picture.url
+            if instance.picture.url.startswith("http"):  # Already a full URL
+                data["picture"] = instance.picture.url
+            else:
+                data["picture"] = f"https://res.cloudinary.com/temz-cloudinary/{instance.picture.url}"
+
         return data
