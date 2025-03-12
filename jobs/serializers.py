@@ -2,6 +2,9 @@ from rest_framework import serializers
 from .models import Job, Industry, Category
 from applications.models import Application
 import json
+from django.conf import settings
+from users.models import User
+
 
 
 class IndustrySerializer(serializers.ModelSerializer):
@@ -10,10 +13,26 @@ class IndustrySerializer(serializers.ModelSerializer):
         fields = ('id', 'name')
 
 class CategorySerializer(serializers.ModelSerializer):
-    industry = IndustrySerializer()
     class Meta:
         model = Category
         fields = ('id', 'name', 'industry')
+        
+class CategoryIndustrySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ('id', 'name')
+
+class JobListSerializer(serializers.ModelSerializer):
+    industry = serializers.CharField(source="industry.name", read_only=True)
+    category = serializers.CharField(source="category.name", read_only=True)
+    posted_by = serializers.CharField(source="posted_by.email", read_only=True)
+    no_of_applicants = serializers.SerializerMethodField()
+    class Meta:
+        model = Job
+        fields = "__all__"
+        
+    def get_no_of_applicants(self, obj):
+        return Application.objects.filter(job=obj).count()
 
 class JobSerializer(serializers.ModelSerializer):
     no_of_applicants = serializers.SerializerMethodField()
@@ -25,9 +44,9 @@ class JobSerializer(serializers.ModelSerializer):
             'industry': {'required': True},
             'category': {'required': True},
             'posted_by': {'read_only': True},
-            'responsibilities': {'required': False},
-            'required_skills': {'required': False},
-            'type': {'required': False},
+            'responsibilities': {'required': True},
+            'required_skills': {'required': True},
+            'type': {'required': True},
             'picture': {'required': False, 'allow_null': True},
         }
 
@@ -51,7 +70,7 @@ class JobSerializer(serializers.ModelSerializer):
         if not isinstance(job_type, list) or not all(isinstance(t, str) for t in job_type):
             raise serializers.ValidationError({"type": "Job type must be a list of strings."})
 
-        data["type"] = job_type  # Ensure it's always a list
+        data["type"] = job_type
 
         return data
 
@@ -64,11 +83,8 @@ class JobSerializer(serializers.ModelSerializer):
         data["responsibilities"] = data["responsibilities"] or []
         data["required_skills"] = data["required_skills"] or []
         data["type"] = data["type"] or []
-        request = self.context.get('request')
+        
         if instance.picture:
-            if instance.picture.url.startswith("http"):  # Already a full URL
-                data["picture"] = instance.picture.url
-            else:
-                data["picture"] = f"https://res.cloudinary.com/temz-cloudinary/{instance.picture.url}"
-
+            data["picture"] = instance.picture.url
+        
         return data

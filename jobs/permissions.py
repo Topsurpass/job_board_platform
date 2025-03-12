@@ -69,3 +69,24 @@ class ReadOnlyAdminModify(permissions.BasePermission):
             return True
         
         return request.user.is_superuser
+class IsAdminAndEmployer(permissions.BasePermission):
+    """
+        - View only access for all
+        - Only admin create and modify
+    """
+    def has_permission(self, request, view):
+        if not request.user and not request.user.is_authenticated:
+            return False
+        
+        if request.user.is_superuser:
+            return True
+        
+        return getattr(request.user, "role", None) in ["admin", "employer"]
+        
+                
+class IsOnlyAdmin(permissions.BasePermission):
+    """Allows access only to superadmins or users with the 'admin' role."""
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and (
+            request.user.is_superuser or getattr(request.user, "role", None) == "admin"
+        )

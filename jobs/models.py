@@ -3,6 +3,8 @@ import uuid
 import json
 from users.models import User
 from django.core.exceptions import ValidationError
+from cloudinary.models import CloudinaryField
+from django.conf import settings
 
 class Industry(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, unique=True, editable=False)
@@ -37,7 +39,7 @@ class Job(models.Model):
     location = models.CharField(max_length=255, db_index=True)
     wage = models.IntegerField(null=True, blank=True)
 
-    JOB_TYPE_CHOICES = ['part-time', 'full-time', 'contract', 'internship']
+    JOB_TYPE_CHOICES = ['part-time', 'full-time', 'contract', 'internship', 'remote']
     
     type = models.JSONField(default=list) 
 
@@ -56,7 +58,11 @@ class Job(models.Model):
     is_active = models.BooleanField(default=True, db_index=True)
     responsibilities = models.JSONField(default=list)
     required_skills = models.JSONField(default=list)
-    picture = models.ImageField(upload_to="job_pictures/", null=True, blank=True)
+    
+    if settings.DEBUG:
+        picture = models.ImageField(upload_to="job_pictures/", null=True, blank=True)
+    else:
+        picture = CloudinaryField("image", null=True, blank=True)
 
 
     def __str__(self):

@@ -27,6 +27,12 @@ def auth_client_admin(api_client, admin):
     return api_client
 
 @pytest.fixture
+def auth_client_admin2(api_client, admin2):
+    """Authenticates the API client with a test admin"""
+    api_client.force_authenticate(user=admin2)
+    return api_client
+
+@pytest.fixture
 def user(db):
     """Create test user"""
     return User.objects.create_user(
@@ -46,6 +52,20 @@ def admin(db):
         password="securepassword",
         first_name="Admin",
         last_name="Doe",
+        is_staff="True",
+        is_superuser="True",
+        role="admin",
+        phone="1234567890"
+    )
+    
+@pytest.fixture
+def admin2(db):
+    """Create test admin"""
+    return User.objects.create_user(
+        email="admin2@example.com",
+        password="securepassword",
+        first_name="Admin2",
+        last_name="Doe2",
         is_staff="True",
         is_superuser="True",
         role="admin",
@@ -154,9 +174,54 @@ class TestIndustryViewSet:
         url = reverse("industry-list", args=[999])
         response = api_client.get(url)
         assert response.status_code == status.HTTP_404_NOT_FOUND
+        
+            
+    def test_get_categories_by_industry_admin(self, auth_client_admin):      
+        url = reverse("industry-list") + "categories-by-industry/"
+        response = auth_client_admin.get(url)
+        
+        assert response.status_code == status.HTTP_200_OK
+        assert "results" in response.json()
+        assert len(response.json()["results"]) == 0
+
+    def test_get_categories_by_industry_unauthorized(self, api_client):
+        url = reverse("industry-list") + "categories-by-industry/"
+        response = api_client.get(url)
+        
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        
+    def test_get_industries_used_unauthorized(self, api_client):
+        url = reverse("industry-list") + "industries-used/"
+        response = api_client.get(url)
+        
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        
+    def test_user_get_industries_used_unauthorized(self, auth_client_user):
+        url = reverse("industry-list") + "industries-used/"
+        response = auth_client_user.get(url)
+        
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        
+    
 
 @pytest.mark.django_db
 class TestCategoryViewSet:
+    def test_admin_create_category(self, auth_client_admin, industry, admin):
+        url = reverse("category-list")
+        data = {"name": "Software",  "created_by": admin, "industry": industry.id}
+        response = auth_client_admin.post(url, data)
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert Category.objects.filter(name="Software").exists()
+        
+    def test_user_create_category(self, auth_client_user, industry, user):
+        url = reverse("category-list")
+        data = {"name": "Software", "created_by": user, "industry": industry.id}
+        response = auth_client_user.post(url, data)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert not Category.objects.filter(name="Software").exists()
+        
     def test_get_category_jobs(self, api_client, industry, category, admin):
         Job.objects.create(title="Backend Developer", industry=industry, category=category, location="Remote", type=["full-time"], posted_by=admin)
         
@@ -186,6 +251,8 @@ class TestJobViewSet:
             "industry": industry.id,
             "category": category.id,
             "location": "Remote",
+            "responsibilities": "Just come",
+            "required_skills": "python",
             "company": "NIBBS",
             "type": ["full-time"],
             "description": "Great job opportunity",
@@ -254,3 +321,80 @@ class TestJobViewSet:
 
         assert response.status_code == status.HTTP_200_OK
         assert len(response.json()["results"]["applicants"]) == 1
+
+    def test_total_jobs(self, auth_client_admin, admin, industry, category):
+        """Test if an employer gets the correct total number of their posted jobs."""
+        Job.objects.create(title="Backend Engineer", industry=industry, category=category, location="NY", type=["full-time"],  posted_by=admin)
+        Job.objects.create(title="Frontend Engineer", industry=industry, category=category, location="CA", type=["full-time"],  posted_by=admin)
+        url = reverse("job-list") + "total-jobs/"
+        
+        response = auth_client_admin.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["total_jobs"] == 2
+        
+    def test_user_cannot_access_total_jobs(self, auth_client_user, admin, industry, category):
+        """Test user cannot gets the total number of posted jobs as they cant post jobs."""
+        Job.objects.create(title="Backend Engineer", industry=industry, category=category, location="NY", type=["full-time"],  posted_by=admin)
+        Job.objects.create(title="Frontend Engineer", industry=industry, category=category, location="CA", type=["full-time"],  posted_by=admin)
+        url = reverse("job-list") + "total-jobs/"
+        
+        response = auth_client_user.get(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+               
+    def test_total_jobs_unauthenticated(self, api_client):
+        """Test user cannot gets the total number of posted jobs as they cant post jobs."""
+        url = reverse("job-list") + "total-jobs/"
+        
+        response = api_client.get(url)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        
+    def test_total_applicants(self, auth_client_admin, admin, user, industry, category):
+        """Test if an employer/admin gets the correct total number of applicants on all their posted jobs."""    
+        job1 = Job.objects.create(title="Data Scientist", industry=industry, category=category, location="Remote", type=["full-time"], posted_by=admin)
+        job2 = Job.objects.create(title="Backend Engineer", industry=industry, category=category, location="NY", type=["full-time"],  posted_by=admin)
+        job3 = Job.objects.create(title="Frontend Engineer", industry=industry, category=category, location="CA", type=["full-time"],  posted_by=admin)
+        Application.objects.create(job=job1, applicant=user)
+        Application.objects.create(job=job2, applicant=user)
+        Application.objects.create(job=job3, applicant=user)
+        
+        url = reverse("job-list") + "total-applicants/"
+        
+        response = auth_client_admin.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["all_applicants"] == 3   
+            
+    def test_total_applicants_by_different_job_posters(self, auth_client_admin2, admin,  user, admin2, industry, category):
+        """Test if an employer/admin gets the correct total number of applicants on all their posted jobs."""    
+        job1 = Job.objects.create(title="Data Scientist", industry=industry, category=category, location="Remote", type=["full-time"], posted_by=admin2)
+        job2 = Job.objects.create(title="Backend Engineer", industry=industry, category=category, location="NY", type=["full-time"],  posted_by=admin2)
+        job3 = Job.objects.create(title="Frontend Engineer", industry=industry, category=category, location="CA", type=["full-time"],  posted_by=admin)
+        Application.objects.create(job=job1, applicant=user)
+        Application.objects.create(job=job2, applicant=user)
+        Application.objects.create(job=job3, applicant=user)
+        
+        url = reverse("job-list") + "total-applicants/"
+        
+        response = auth_client_admin2.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["all_applicants"] == 2
+        
+    def test_total_applicants_unauthenticated(self, api_client):
+        """Test user cannot gets the total number of applicants as they cant post jobs."""
+        url = reverse("job-list") + "total-applicants/"
+        
+        response = api_client.get(url)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        
+    def test_user_cannot_access_total_applicants(self, auth_client_user, admin, user, industry, category):
+        """Test user cannot gets the total number of applicants for jobs as they cant post jobs."""
+        job1 = Job.objects.create(title="Data Scientist", industry=industry, category=category, location="Remote", type=["full-time"], posted_by=admin)
+        Application.objects.create(job=job1, applicant=user)
+
+        url = reverse("job-list") + "total-applicants/"
+        
+        response = auth_client_user.get(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
