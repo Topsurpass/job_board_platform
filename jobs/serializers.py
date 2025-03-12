@@ -83,10 +83,8 @@ class JobSerializer(serializers.ModelSerializer):
         data["responsibilities"] = data["responsibilities"] or []
         data["required_skills"] = data["required_skills"] or []
         data["type"] = data["type"] or []
-        request = self.context.get('request')
+        
         if instance.picture:
-            if settings.DEBUG:
-                data["picture"] = request.build_absolute_uri(instance.picture.url) if request else instance.picture.url
-            else:
-                data["picture"] = instance.picture.url
+            data["picture"] = instance.picture.url
+        
         return data

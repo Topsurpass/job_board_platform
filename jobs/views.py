@@ -1,4 +1,5 @@
 import traceback
+from django.conf import settings
 from rest_framework import viewsets, filters, serializers, status
 from .models import Job, Industry, Category
 from django.db.models import Count
@@ -484,25 +485,42 @@ class JobViewSet(viewsets.ModelViewSet):
         responses={200: JobSerializer(many=True)}
     )
     def list(self, request, *args, **kwargs):
-        """Cache the job listing response while applying search and pagination."""
+        """Fetch job listings, ensure absolute picture URLs, and apply caching."""
 
         cache_key = f"job_list_{request.query_params.get('search', '')}_{request.query_params.get('page', '')}_{request.query_params.get('page_size', '')}"
-        cached_jobs = cache.get(cache_key)
+        cached_data = cache.get(cache_key)
 
-        if cached_jobs:
-            return Response(cached_jobs)
+        if cached_data:
+            return Response(cached_data)
+
+        def get_absolute_picture_url(picture_url):
+            """Return absolute URL for job picture based on environment."""
+            if not picture_url:
+                return None
+
+            if settings.DEBUG:
+                return request.build_absolute_uri(picture_url) if request else picture_url
+            else:
+                if not picture_url.startswith("http"):
+                    cloud_name = getattr(settings, "CLOUDINARY_CLOUD_NAME", "temz-cloudinary")
+                    return f"https://res.cloudinary.com/{cloud_name}/{picture_url}"
+                return picture_url
 
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
 
         if page is not None:
-            serializer = JobListSerializer(page, many=True)
+            serializer = JobListSerializer(page, many=True, context={"request": request})
             response = self.get_paginated_response(serializer.data)
         else:
-            serializer = JobListSerializer(queryset, many=True)
+            serializer = JobListSerializer(queryset, many=True, context={"request": request})
             response = Response(serializer.data)
 
-        cache.set(cache_key, response.data, timeout=120)  
+        for job in response.data["results"]:
+            if "picture" in job:
+                job["picture"] = get_absolute_picture_url(job["picture"]) 
+    
+        cache.set(cache_key, response.data, timeout=120) 
         return response
     
     def clear_cache(self):
