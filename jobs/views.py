@@ -552,17 +552,37 @@ class JobViewSet(viewsets.ModelViewSet):
         responses={200: JobSerializer}
     )
     def retrieve(self, request, *args, **kwargs):
-        """Cache individual job details."""
+        """Fetch individual job details, ensure absolute picture URL, and apply caching."""
+
         job_id = kwargs.get("pk")
         cache_key = f"job_{job_id}"
-        
-        job_data = cache.get(cache_key)
-        if job_data is None:
-            response = super().retrieve(request, *args, **kwargs)
-            cache.set(cache_key, response.data, timeout=60 * 2)
-            return response
-        
+        cached_data = cache.get(cache_key)
+
+        if cached_data:
+            return Response(cached_data)
+
+        def get_absolute_picture_url(picture_url):
+            """Return absolute URL for job picture based on environment."""
+            if not picture_url:
+                return None
+
+            if settings.DEBUG:
+                return request.build_absolute_uri(picture_url) if request else picture_url
+            else:
+                if not picture_url.startswith("http"):
+                    cloud_name = getattr(settings, "CLOUDINARY_CLOUD_NAME", "temz-cloudinary")
+                    return f"https://res.cloudinary.com/{cloud_name}/{picture_url}"
+                return picture_url
+
+        response = super().retrieve(request, *args, **kwargs)
+        job_data = response.data
+
+        if "picture" in job_data:
+            job_data["picture"] = get_absolute_picture_url(job_data["picture"])
+
+        cache.set(cache_key, job_data, timeout=120)
         return Response(job_data)
+
     
     @swagger_auto_schema(
         operation_summary="Update a job",
