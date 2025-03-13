@@ -28,7 +28,7 @@ from django.core.exceptions import ValidationError
 logger = logging.getLogger(__name__)
 
 class IndustryViewSet(viewsets.ModelViewSet):
-    """API endpoint for industries with paginated jobs."""
+    """API endpoint for performing CRUD functions on industries with paginated jobs."""
     queryset = Industry.objects.all().order_by('-created_at')
     serializer_class = IndustrySerializer
     permission_classes = [ReadOnlyAdminModify]
